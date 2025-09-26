@@ -83,14 +83,17 @@ func main() {
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	router.Use(cors.New(corsConfig))
 
-	// Health check
-	router.GET("/health", func(c *gin.Context) {
+	// Health check que soporta GET y HEAD
+	healthHandler := func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "healthy",
 			"service":   "music-service",
 			"timestamp": time.Now().UTC(),
 		})
-	})
+	}
+
+	router.GET("/health", healthHandler)
+	router.HEAD("/health", healthHandler)
 
 	// API routes
 	v1 := router.Group("/api/v1")
