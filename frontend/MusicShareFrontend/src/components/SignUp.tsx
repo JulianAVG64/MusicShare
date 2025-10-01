@@ -14,7 +14,10 @@ export default function SignUp() {
 
   return (
     <div className="bg-base-200 select-none">
-      <section className="w-full min-h-[calc(100vh)] flex items-center justify-center overflow-hidden">
+      <section className="w-full min-h-screen flex items-center justify-center bg-no-repeat bg-center"
+        style={{
+    backgroundImage: `url("https://images.pexels.com/photos/1389429/pexels-photo-1389429.jpeg")`
+  }}>
         <div className="bg-white rounded-3xl shadow-xl flex w-full max-w-5xl overflow-hidden">
           <div className="w-full md:w-1/2 p-10 text-gray-800">
             <div className="mb-6 text-center">
