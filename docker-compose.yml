@@ -5,36 +5,51 @@
 version: '3.8'
 
 services:
+<<<<<<< HEAD
   # --- Base de Datos MongoDB ---
+=======
+  postgres:
+    image: postgres:15
+    container_name: musicshare_postgres
+    environment:
+      POSTGRES_USER: music_user
+      POSTGRES_PASSWORD: music_pass
+      POSTGRES_DB: music_db
+    volumes:
+      - musicshare_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music_user -d music_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - musicshare_network
+
+>>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
   mongodb:
-    image: mongo:7.0
-    container_name: musicshare-mongodb
-    restart: unless-stopped
+    image: mongo:6
+    container_name: musicshare_mongodb
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: musicshare
     volumes:
-      - mongodb_data:/data/db
-      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - musicshare_mongo_data:/data/db
     networks:
-      - musicshare-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - musicshare_network
 
+<<<<<<< HEAD
   # --- Music Service (Go) ---
   music-service:
+=======
+  musicservice:
+>>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
     build:
       context: ./musicservice
       dockerfile: Dockerfile
-    container_name: musicshare-music-service
-    restart: unless-stopped
+    container_name: musicservice
     ports:
+<<<<<<< HEAD
       - "8081:8081"
     environment:
       - SERVER_PORT=8081
@@ -51,15 +66,13 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+=======
+      - "8080:8080"
+>>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
     networks:
-      - musicshare-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      - musicshare_network
 
+<<<<<<< HEAD
   # --- Broker de Mensajes RabbitMQ ---
   rabbitmq:
     image: "rabbitmq:3.12-management"
@@ -107,3 +120,45 @@ volumes:
   rabbitmq_data:
     driver: local
 
+=======
+  userservice:
+    build:
+      context: ./userservice
+      dockerfile: Dockerfile
+    container_name: userservice
+    depends_on:
+      - postgres
+      - mongodb
+      - musicservice
+    environment:
+      POSTGRES_USER: music_user
+      POSTGRES_PASSWORD: music_pass
+      POSTGRES_DB: music_db
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      SECRET_KEY: "replace-this-secret"
+      MUSICSERVICE_URL: "http://musicservice:8080"
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./userservice/app:/app/app:ro
+    networks:
+      - musicshare_network
+
+  #frontend:
+    # A la espera del frontend para descomentariar
+    #image: frontend:latest
+    #container_name: frontend
+    #ports:
+      #- "3000:3000"
+    #networks:
+      #- musicshare_network
+
+volumes:
+  musicshare_postgres_data:
+  musicshare_mongo_data:
+
+networks:
+  musicshare_network:
+    driver: bridge
+>>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
