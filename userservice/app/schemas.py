@@ -4,13 +4,13 @@ from datetime import date
 
 class UserBase(BaseModel):
     email: EmailStr
-    first_name: str
-    middle_name: Optional[str] = None
-    last_name: str
-    second_last_name: Optional[str] = None
+    #first_name: str
+    #middle_name: Optional[str] = None
+    #last_name: str
+    #second_last_name: Optional[str] = None
     username: str
-    date_of_birth: date
-    gender: Optional[str] = None  # "M", "F", "Otro", etc.
+    #date_of_birth: date
+    #gender: Optional[str] = None  # "M", "F", "Otro", etc.
 
 class UserCreate(UserBase):
     password: str
