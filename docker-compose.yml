@@ -55,27 +55,36 @@ services:
       SERVER_PORT: 8081
       ENVIRONMENT: production
       LOG_LEVEL: info
-      
+
       # MongoDB configuration
       MONGODB_URI: mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
       MONGODB_DATABASE: musicshare
-      
+
       # Storage configuration
       STORAGE_TYPE: local
       STORAGE_PATH: /app/uploads
-      
+
       # Metadata Service (disabled for MVP)
       METADATA_SERVICE_GRPC: ""
       METADATA_SERVICE_HTTP: ""
     volumes:
-      - ./uploads:/app/uploads  # Bind mount a carpeta local del proyecto
+      - ./uploads:/app/uploads # Bind mount a carpeta local del proyecto
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - musicshare-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "--method=GET",
+          "http://localhost:8081/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -109,14 +118,36 @@ services:
       - musicshare-network
 
   #frontend:
-    # A la espera del frontend para descomentariar
-    #image: frontend:latest
-    #container_name: frontend
-    #ports:
-      #- "3000:3000"
-    #networks:
-      #- musicshare-network
-      
+  frontend:
+    build:
+      context: ./frontend/MusicShareFrontend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: musicshare-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # Puerto host:puerto contenedor
+    depends_on:
+      - userservice
+      - music-service
+    networks:
+      - musicshare-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
 networks:
   musicshare-network:
     driver: bridge
