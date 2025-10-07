@@ -17,9 +17,37 @@ import (
 	"musicservice/internal/storage"
 	"musicservice/pkg/logger"
 
+	// Swagger imports
+	_ "musicservice/docs" // Importar docs generados
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+// @title Music Service API
+// @version 1.0
+// @description RESTful API for music file management and playlist operations
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.musicshare.com/support
+// @contact.email support@musicshare.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8081
+// @BasePath /api/v1
+
+// @schemes http https
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Initialize configuration
@@ -83,7 +111,7 @@ func main() {
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	router.Use(cors.New(corsConfig))
 
-	// Health check que soporta GET y HEAD
+	// Health check
 	healthHandler := func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "healthy",
@@ -94,6 +122,9 @@ func main() {
 
 	router.GET("/health", healthHandler)
 	router.HEAD("/health", healthHandler)
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API routes
 	v1 := router.Group("/api/v1")
@@ -139,6 +170,7 @@ func main() {
 	// Start server in a goroutine
 	go func() {
 		logger.Infof("Music Service starting on %s", cfg.Server.Address)
+		logger.Infof("Swagger documentation available at http://%s/swagger/index.html", cfg.Server.Address)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Failed to start server: %v", err)
 		}
