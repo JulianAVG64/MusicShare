@@ -137,32 +137,32 @@ Event-Driven: Para notificaciones y actualizaciones en tiempo real
 API Gateway Pattern: Para enrutar requests y manejar autenticación
 
 ## Description of architectural elements and relations 
-Componentes:
-## Presentación:
-Web Frontend (React/TypeScript): Interfaz de usuario principal
-Lógica de Negocio:
-User Service (Python/FastAPI): Gestión de usuarios, autenticación, perfiles
-Music Service (Go): Manejo de archivos musicales, metadata, cloud storage
-Social Service (Java/Spring Boot): Feed, seguimientos, interacciones sociales
-Notification Service (Python): Sistema de notificaciones en tiempo real
-Search Service (Go): Búsquedas y recomendaciones
-Metadata Service (Python/FastAPI): Obtención de metadatos para las canciones subidas por medio de Music Service
-Datos:
-User Database (PostgreSQL): Datos de usuarios, perfiles, relaciones
-Music Metadata Database (MongoDB): Metadatos de canciones, playlists, tags
-Cloud Storage (AWS S3/Google Cloud): Archivos de audio
-Cache Layer (Redis): Cache para búsquedas y feed
-Conectores HTTP:
-REST API Connector:
-Comunicación entre Frontend y servicios
-Operaciones CRUD estándar
-Autenticación via JWT
-WebSocket Connector:
-Notificaciones en tiempo real
-Chat en vivo durante reproducciones
-Updates del feed en tiempo real
-gRPC:
-Conexión MusicService con MetadataService
+## Componentes:
+### Presentación:
+- Web Frontend (React/TypeScript): Interfaz de usuario principal
+### Lógica de Negocio:
+- User Service (Python/FastAPI): Gestión de usuarios, autenticación, perfiles
+- Music Service (Go): Manejo de archivos musicales, metadata, cloud storage
+- Social Service (Java/Spring Boot): Feed, seguimientos, interacciones sociales
+- Notification Service (Python): Sistema de notificaciones en tiempo real
+- Search Service (Go): Búsquedas y recomendaciones
+- Metadata Service (Python/FastAPI): Obtención de metadatos para las canciones subidas por medio de Music Service
+### Datos:
+- User Database (PostgreSQL): Datos de usuarios, perfiles, relaciones
+- Music Metadata Database (MongoDB): Metadatos de canciones, playlists, tags
+- Cloud Storage (AWS S3/Google Cloud): Archivos de audio
+- Cache Layer (Redis): Cache para búsquedas y feed
+## Conectores HTTP:
+### REST API Connector:
+  - Comunicación entre Frontend y servicios
+  - Operaciones CRUD estándar
+  - Autenticación via JWT
+### WebSocket Connector:
+  - Notificaciones en tiempo real
+  - Chat en vivo durante reproducciones
+  - Updates del feed en tiempo real
+### gRPC:
+  - Conexión MusicService con MetadataService
 
 
 ## 🎯 Objetivo del prototipo
