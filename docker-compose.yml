@@ -5,9 +5,6 @@
 version: '3.8'
 
 services:
-<<<<<<< HEAD
-  # --- Base de Datos MongoDB ---
-=======
   postgres:
     image: postgres:15
     container_name: musicshare_postgres
@@ -27,7 +24,6 @@ services:
     networks:
       - musicshare_network
 
->>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
   mongodb:
     image: mongo:6
     container_name: musicshare_mongodb
@@ -38,89 +34,16 @@ services:
     networks:
       - musicshare_network
 
-<<<<<<< HEAD
-  # --- Music Service (Go) ---
-  music-service:
-=======
   musicservice:
->>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
     build:
       context: ./musicservice
       dockerfile: Dockerfile
     container_name: musicservice
     ports:
-<<<<<<< HEAD
-      - "8081:8081"
-    environment:
-      - SERVER_PORT=8081
-      - ENVIRONMENT=production
-      - LOG_LEVEL=info
-      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
-      - MONGODB_DATABASE=musicshare
-      - STORAGE_TYPE=local
-      - STORAGE_PATH=/app/uploads
-      - METADATA_SERVICE_GRPC=""
-      - METADATA_SERVICE_HTTP=""
-    volumes:
-      - ./uploads:/app/uploads
-    depends_on:
-      mongodb:
-        condition: service_healthy
-=======
       - "8080:8080"
->>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
     networks:
       - musicshare_network
 
-<<<<<<< HEAD
-  # --- Broker de Mensajes RabbitMQ ---
-  rabbitmq:
-    image: "rabbitmq:3.12-management"
-    container_name: musicshare-rabbitmq
-    hostname: "rabbitmq"
-    restart: unless-stopped
-    ports:
-      - "5672:5672"   # Puerto para la comunicación AMQP
-      - "15672:15672" # Puerto para la interfaz de gestión web
-    volumes:
-      - "rabbitmq_data:/var/lib/rabbitmq"
-    networks:
-      - musicshare-network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # --- Servicio de Notificaciones (Python) ---
-  notification-service:
-    build:
-      context: ./notificationservice
-      dockerfile: Dockerfile
-    container_name: musicshare-notification-service
-    restart: on-failure
-    ports:
-      - "8082:8082"
-    environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - musicshare-network
-
-# --- Redes y Volúmenes ---
-networks:
-  musicshare-network:
-    driver: bridge
-
-volumes:
-  mongodb_data:
-    driver: local
-  rabbitmq_data:
-    driver: local
-
-=======
   userservice:
     build:
       context: ./userservice
@@ -145,6 +68,30 @@ volumes:
     networks:
       - musicshare_network
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: musicshare_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Panel de administración opcional
+    networks:
+      - musicshare_network
+
+  notificationservice:
+    build:
+      context: ./notificationservice
+      dockerfile: Dockerfile
+    container_name: notificationservice
+    depends_on:
+      - rabbitmq
+    environment:
+      AMQP_URL: "amqp://guest:guest@rabbitmq/"
+      QUEUE_NAME: "notifications"
+    ports:
+      - "8082:8082"
+    networks:
+      - musicshare_network
+
   #frontend:
     # A la espera del frontend para descomentariar
     #image: frontend:latest
@@ -161,4 +108,3 @@ volumes:
 networks:
   musicshare_network:
     driver: bridge
->>>>>>> b5b6f1226244477a57fcf51426afa7a8ff92d74a
