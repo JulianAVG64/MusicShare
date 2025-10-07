@@ -1,5 +1,14 @@
 # app/config.py
-from pydantic import BaseSettings
+
+
+# compatibility for pydantic v1 & v2
+try:
+    # pydantic v2: BaseSettings moved to pydantic-settings
+    from pydantic_settings import BaseSettings
+except Exception:
+    # fallback for pydantic v1
+    from pydantic import BaseSettings
+    
 
 class Settings(BaseSettings):
     POSTGRES_USER: str = "music_user"

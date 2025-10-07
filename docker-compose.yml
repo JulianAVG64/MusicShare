@@ -87,9 +87,12 @@ services:
       dockerfile: Dockerfile
     container_name: userservice
     depends_on:
-      - postgres
-      - mongodb
-      - music-service
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      music-service:
+        condition: service_started
     environment:
       POSTGRES_USER: music_user
       POSTGRES_PASSWORD: music_pass
@@ -99,7 +102,7 @@ services:
       SECRET_KEY: "replace-this-secret"
       MUSICSERVICE_URL: "http://music-service:8081"
     ports:
-      - "8001:8001"
+      - "8002:8002"
     volumes:
       - ./userservice/app:/app/app:ro
     networks:
