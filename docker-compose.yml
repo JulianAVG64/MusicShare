@@ -1,4 +1,5 @@
 services:
+  # PostgresDB Database
   postgres:
     image: postgres:15
     container_name: musicshare_postgres
@@ -7,7 +8,7 @@ services:
       POSTGRES_PASSWORD: music_pass
       POSTGRES_DB: music_db
     volumes:
-      - musicshare_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -16,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare_network
+      - musicshare-network
 
   # MongoDB Database
   mongodb:
@@ -88,7 +89,7 @@ services:
     depends_on:
       - postgres
       - mongodb
-      - musicservice
+      - music-service
     environment:
       POSTGRES_USER: music_user
       POSTGRES_PASSWORD: music_pass
@@ -96,13 +97,13 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       SECRET_KEY: "replace-this-secret"
-      MUSICSERVICE_URL: "http://musicservice:8080"
+      MUSICSERVICE_URL: "http://music-service:8081"
     ports:
       - "8001:8001"
     volumes:
       - ./userservice/app:/app/app:ro
     networks:
-      - musicshare_network
+      - musicshare-network
 
   #frontend:
     # A la espera del frontend para descomentariar
@@ -111,7 +112,7 @@ services:
     #ports:
       #- "3000:3000"
     #networks:
-      #- musicshare_network
+      #- musicshare-network
       
 networks:
   musicshare-network:
@@ -119,4 +120,6 @@ networks:
 
 volumes:
   mongodb_data:
+    driver: local
+  postgres_data:
     driver: local
