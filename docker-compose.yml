@@ -18,25 +18,67 @@ services:
     networks:
       - musicshare_network
 
+  # MongoDB Database
   mongodb:
-    image: mongo:6
-    container_name: musicshare_mongodb
+    image: mongo:7.0
+    container_name: musicshare-mongodb
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: musicshare
     volumes:
-      - musicshare_mongo_data:/data/db
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
-      - musicshare_network
+      - musicshare-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  musicservice:
+  # Music Service
+  music-service:
     build:
       context: ./musicservice
       dockerfile: Dockerfile
-    container_name: musicservice
+    container_name: musicshare-music-service
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8081:8081"
+    environment:
+      # Server configuration
+      SERVER_PORT: 8081
+      ENVIRONMENT: production
+      LOG_LEVEL: info
+      
+      # MongoDB configuration
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
+      MONGODB_DATABASE: musicshare
+      
+      # Storage configuration
+      STORAGE_TYPE: local
+      STORAGE_PATH: /app/uploads
+      
+      # Metadata Service (disabled for MVP)
+      METADATA_SERVICE_GRPC: ""
+      METADATA_SERVICE_HTTP: ""
+    volumes:
+      - ./uploads:/app/uploads  # Bind mount a carpeta local del proyecto
+    depends_on:
+      mongodb:
+        condition: service_healthy
     networks:
-      - musicshare_network
+      - musicshare-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   userservice:
     build:
@@ -70,11 +112,11 @@ services:
       #- "3000:3000"
     #networks:
       #- musicshare_network
+      
+networks:
+  musicshare-network:
+    driver: bridge
 
 volumes:
-  musicshare_postgres_data:
-  musicshare_mongo_data:
-
-networks:
-  musicshare_network:
-    driver: bridge
+  mongodb_data:
+    driver: local
