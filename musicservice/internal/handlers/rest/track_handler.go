@@ -25,7 +25,22 @@ func NewTrackHandler(trackService *services.TrackService) *TrackHandler {
 	}
 }
 
-// UploadTrack handles track upload requests
+// UploadTrack godoc
+// @Summary Upload audio track
+// @Description Upload an audio file to the service. Supports MP3, WAV, FLAC, M4A, OGG, AAC formats
+// @Tags tracks
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Audio file"
+// @Param user_id formData string true "User ID"
+// @Param tags formData string false "Comma-separated tags (e.g., rock,classic)"
+// @Param is_public formData bool false "Whether the track is public"
+// @Success 201 {object} SuccessResponse{data=models.Track} "Track uploaded successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 413 {object} ErrorResponse "File too large"
+// @Failure 415 {object} ErrorResponse "Unsupported file type"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /tracks/upload [post]
 func (h *TrackHandler) UploadTrack(c *gin.Context) {
 	// Parse multipart form
 	if err := c.Request.ParseMultipartForm(50 << 20); err != nil { // 50MB max
@@ -77,7 +92,17 @@ func (h *TrackHandler) UploadTrack(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusCreated, track, "Track uploaded successfully")
 }
 
-// GetTrack handles getting a single track by ID
+// GetTrack godoc
+// @Summary Get track details
+// @Description Retrieve information about a specific track by ID
+// @Tags tracks
+// @Produce json
+// @Param id path string true "Track ID"
+// @Success 200 {object} SuccessResponse{data=models.Track} "Track retrieved successfully"
+// @Failure 400 {object} ErrorResponse "Invalid track ID"
+// @Failure 404 {object} ErrorResponse "Track not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /tracks/{id} [get]
 func (h *TrackHandler) GetTrack(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -98,7 +123,22 @@ func (h *TrackHandler) GetTrack(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, track, "Track retrieved successfully")
 }
 
-// ListTracks handles listing tracks with filters and pagination
+// ListTracks godoc
+// @Summary List tracks
+// @Description List tracks with optional filtering and pagination
+// @Tags tracks
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20) maximum(100)
+// @Param user_id query string false "Filter by user ID"
+// @Param genre query string false "Filter by genre"
+// @Param artist query string false "Filter by artist name"
+// @Param is_public query bool false "Filter by public/private"
+// @Param search query string false "Search in title, artist, album, or tags"
+// @Success 200 {object} SuccessResponse{data=TrackListResponse} "Tracks retrieved successfully"
+// @Failure 400 {object} ErrorResponse "Invalid query parameters"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /tracks [get]
 func (h *TrackHandler) ListTracks(c *gin.Context) {
 	var filter models.TrackFilter
 
@@ -127,11 +167,11 @@ func (h *TrackHandler) ListTracks(c *gin.Context) {
 
 	// Calculate pagination info
 	totalPages := (total + int64(filter.Limit) - 1) / int64(filter.Limit)
-	
+
 	response := gin.H{
 		"tracks": tracks,
 		"pagination": gin.H{
-			"current_page":  filter.Page,
+			"current_page": filter.Page,
 			"per_page":     filter.Limit,
 			"total_pages":  totalPages,
 			"total_items":  total,
@@ -143,7 +183,19 @@ func (h *TrackHandler) ListTracks(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, response, "Tracks retrieved successfully")
 }
 
-// DeleteTrack handles track deletion
+// DeleteTrack godoc
+// @Summary Delete track
+// @Description Delete a track (only the owner can delete)
+// @Tags tracks
+// @Produce json
+// @Param id path string true "Track ID"
+// @Param user_id query string true "User ID for authorization"
+// @Success 200 {object} SuccessResponse "Track deleted successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 403 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Track not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /tracks/{id} [delete]
 func (h *TrackHandler) DeleteTrack(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -179,7 +231,18 @@ func (h *TrackHandler) DeleteTrack(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, nil, "Track deleted successfully")
 }
 
-// StreamTrack handles audio streaming
+// StreamTrack godoc
+// @Summary Stream audio track
+// @Description Stream audio file for playback. Redirects to the file URL
+// @Tags tracks
+// @Produce audio/mpeg,audio/wav,audio/flac
+// @Param id path string true "Track ID"
+// @Success 307 "Redirects to audio file"
+// @Failure 400 {object} ErrorResponse "Invalid track ID"
+// @Failure 403 {object} ErrorResponse "Track is private"
+// @Failure 404 {object} ErrorResponse "Track not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /tracks/{id}/stream [get]
 func (h *TrackHandler) StreamTrack(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -208,7 +271,7 @@ func (h *TrackHandler) StreamTrack(c *gin.Context) {
 	c.Header("Content-Type", track.MimeType)
 	c.Header("Content-Length", strconv.FormatInt(track.FileSize, 10))
 	c.Header("Accept-Ranges", "bytes")
-	
+
 	// For MVP, redirect to file URL
 	c.Redirect(http.StatusTemporaryRedirect, track.FileURL)
 }

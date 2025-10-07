@@ -25,7 +25,17 @@ func NewPlaylistHandler(playlistService *services.PlaylistService) *PlaylistHand
 	}
 }
 
-// CreatePlaylist handles playlist creation requests
+// CreatePlaylist godoc
+// @Summary Create playlist
+// @Description Create a new playlist
+// @Tags playlists
+// @Accept json
+// @Produce json
+// @Param playlist body models.CreatePlaylistRequest true "Playlist information"
+// @Success 201 {object} SuccessResponse{data=models.Playlist} "Playlist created successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists [post]
 func (h *PlaylistHandler) CreatePlaylist(c *gin.Context) {
 	logger.Infof("CreatePlaylist handler called - Method: %s, Path: %s", c.Request.Method, c.Request.URL.Path)
 
@@ -55,7 +65,18 @@ func (h *PlaylistHandler) CreatePlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusCreated, playlist, "Playlist created successfully")
 }
 
-// GetPlaylist handles getting a single playlist by ID
+// GetPlaylist godoc
+// @Summary Get playlist details
+// @Description Retrieve playlist information. Use include_tracks=true to get full track information
+// @Tags playlists
+// @Produce json
+// @Param id path string true "Playlist ID"
+// @Param include_tracks query bool false "Include full track information"
+// @Success 200 {object} SuccessResponse{data=models.Playlist} "Playlist retrieved successfully"
+// @Failure 400 {object} ErrorResponse "Invalid playlist ID"
+// @Failure 404 {object} ErrorResponse "Playlist not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists/{id} [get]
 func (h *PlaylistHandler) GetPlaylist(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -94,7 +115,20 @@ func (h *PlaylistHandler) GetPlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, playlist, "Playlist retrieved successfully")
 }
 
-// ListPlaylists handles listing playlists with filters and pagination
+// ListPlaylists godoc
+// @Summary List playlists
+// @Description List playlists with optional filtering and pagination
+// @Tags playlists
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20) maximum(100)
+// @Param creator_id query string false "Filter by creator ID"
+// @Param is_public query bool false "Filter by public/private"
+// @Param search query string false "Search in name or description"
+// @Success 200 {object} SuccessResponse{data=PlaylistListResponse} "Playlists retrieved successfully"
+// @Failure 400 {object} ErrorResponse "Invalid query parameters"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists [get]
 func (h *PlaylistHandler) ListPlaylists(c *gin.Context) {
 	logger.Infof("ListPlaylists called - Query params: %v", c.Request.URL.RawQuery)
 
@@ -149,7 +183,21 @@ func (h *PlaylistHandler) ListPlaylists(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, response, "Playlists retrieved successfully")
 }
 
-// UpdatePlaylist handles playlist updates
+// UpdatePlaylist godoc
+// @Summary Update playlist
+// @Description Update playlist information (only creator or collaborators can update)
+// @Tags playlists
+// @Accept json
+// @Produce json
+// @Param id path string true "Playlist ID"
+// @Param user_id query string true "User ID for authorization"
+// @Param playlist body models.UpdatePlaylistRequest true "Updated playlist information"
+// @Success 200 {object} SuccessResponse{data=models.Playlist} "Playlist updated successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 403 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Playlist not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists/{id} [put]
 func (h *PlaylistHandler) UpdatePlaylist(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -193,7 +241,19 @@ func (h *PlaylistHandler) UpdatePlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, playlist, "Playlist updated successfully")
 }
 
-// DeletePlaylist handles playlist deletion
+// DeletePlaylist godoc
+// @Summary Delete playlist
+// @Description Delete a playlist (only creator can delete)
+// @Tags playlists
+// @Produce json
+// @Param id path string true "Playlist ID"
+// @Param user_id query string true "User ID for authorization"
+// @Success 200 {object} SuccessResponse "Playlist deleted successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 403 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Playlist not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists/{id} [delete]
 func (h *PlaylistHandler) DeletePlaylist(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -229,7 +289,22 @@ func (h *PlaylistHandler) DeletePlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, nil, "Playlist deleted successfully")
 }
 
-// AddTrackToPlaylist handles adding a track to a playlist
+// AddTrackToPlaylist godoc
+// @Summary Add track to playlist
+// @Description Add a track to a playlist
+// @Tags playlists
+// @Accept json
+// @Produce json
+// @Param id path string true "Playlist ID"
+// @Param user_id query string true "User ID for authorization"
+// @Param request body models.AddTrackToPlaylistRequest true "Track to add"
+// @Success 200 {object} SuccessResponse{data=models.Playlist} "Track added successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 403 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Playlist or track not found"
+// @Failure 409 {object} ErrorResponse "Track already in playlist"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists/{id}/tracks [post]
 func (h *PlaylistHandler) AddTrackToPlaylist(c *gin.Context) {
 	playlistID := c.Param("id")
 	if playlistID == "" {
@@ -283,7 +358,20 @@ func (h *PlaylistHandler) AddTrackToPlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, playlist, "Track added to playlist successfully")
 }
 
-// RemoveTrackFromPlaylist handles removing a track from a playlist
+// RemoveTrackFromPlaylist godoc
+// @Summary Remove track from playlist
+// @Description Remove a track from a playlist
+// @Tags playlists
+// @Produce json
+// @Param id path string true "Playlist ID"
+// @Param trackId path string true "Track ID"
+// @Param user_id query string true "User ID for authorization"
+// @Success 200 {object} SuccessResponse{data=models.Playlist} "Track removed successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 403 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Playlist or track not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /playlists/{id}/tracks/{trackId} [delete]
 func (h *PlaylistHandler) RemoveTrackFromPlaylist(c *gin.Context) {
 	playlistID := c.Param("id")
 	if playlistID == "" {
@@ -330,7 +418,18 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, playlist, "Track removed from playlist successfully")
 }
 
-// GetUserPlaylists handles getting playlists for a specific user
+// GetUserPlaylists godoc
+// @Summary Get user playlists
+// @Description Get all playlists created by a specific user
+// @Tags playlists
+// @Produce json
+// @Param userId path string true "User ID"
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20) maximum(100)
+// @Success 200 {object} SuccessResponse{data=PlaylistListResponse} "User playlists retrieved successfully"
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /users/{userId}/playlists [get]
 func (h *PlaylistHandler) GetUserPlaylists(c *gin.Context) {
 	userID := c.Param("userId")
 	if userID == "" {
