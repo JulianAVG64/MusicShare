@@ -1,32 +1,43 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
-from datetime import date
+from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
+    username: str = Field(..., min_length=3, max_length=100)
     email: EmailStr
-    #first_name: str
-    #middle_name: Optional[str] = None
-    #last_name: str
-    #second_last_name: Optional[str] = None
-    username: str
-    #date_of_birth: date
-    #gender: Optional[str] = None  # "M", "F", "Otro", etc.
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=8, max_length=100)
+    profile_picture_url: str = ""
+    bio: str = ""
 
 
 class UserOut(UserBase):
-    id: int
+    user_id: int
+    profile_picture_url: str
+    bio: str
     is_active: bool
-    is_superuser: bool
+
+    class Config:
+        orm_mode = True 
+
+class UserPublic(BaseModel):
+    user_id: int
+    username: str
+    first_name: str
+    last_name: str
+    profile_picture_url: str
+    bio: str
 
     class Config:
         orm_mode = True
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 class TokenData(BaseModel):
-    email: Optional[str] = None
+    email: str | None = None
