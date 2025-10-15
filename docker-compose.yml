@@ -41,6 +41,83 @@ services:
       timeout: 10s
       retries: 5
 
+  # Redis Cache (opcional para MetadataService)
+  # DESHABILITADO: Usando in-memory cache por ahora
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: musicshare-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - musicshare-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   command: redis-server --appendonly yes
+
+  # Metadata Service (Spotify enrichment)
+  metadata-service:
+    build:
+      context: ./metadataservice
+      dockerfile: Dockerfile
+    container_name: musicshare-metadata-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      # Application
+      ENVIRONMENT: production
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      DEBUG: "false"
+      
+      # gRPC
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
+      GRPC_MAX_WORKERS: 10
+      
+      # Spotify API (IMPORTANTE: Configurar con tus credenciales)
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-your_client_id}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-your_client_secret}
+      SPOTIFY_MARKET: US
+      
+      # Cache (DESHABILITADO - usando in-memory)
+      # REDIS_URL: redis://redis:6379/0
+      REDIS_URL: ""
+      CACHE_ENABLED: "true"  # true = in-memory cache
+      CACHE_TTL: 3600
+      
+      # Rate limiting
+      SPOTIFY_REQUESTS_PER_SECOND: 10
+      MAX_BATCH_SIZE: 50
+      REQUEST_TIMEOUT: 30
+      
+      # Matching
+      FUZZY_MATCHING_THRESHOLD: 0.8
+      TITLE_WEIGHT: 0.5
+      ARTIST_WEIGHT: 0.4
+      ALBUM_WEIGHT: 0.1
+      
+      # Retry
+      MAX_RETRIES: 3
+      RETRY_DELAY: 1.0
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
+    networks:
+      - musicshare-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); result = s.connect_ex((\"localhost\", 50051)); s.close(); exit(0 if result == 0 else 1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Music Service
   music-service:
     build:
@@ -64,13 +141,15 @@ services:
       STORAGE_TYPE: local
       STORAGE_PATH: /app/uploads
       
-      # Metadata Service (disabled for MVP)
-      METADATA_SERVICE_GRPC: ""
+      # Metadata Service (AHORA HABILITADO)
+      METADATA_SERVICE_GRPC: metadata-service:50051
       METADATA_SERVICE_HTTP: ""
     volumes:
-      - ./uploads:/app/uploads  # Bind mount a carpeta local del proyecto
+      - ./uploads:/app/uploads
     depends_on:
       mongodb:
+        condition: service_healthy
+      metadata-service:
         condition: service_healthy
     networks:
       - musicshare-network
@@ -81,11 +160,13 @@ services:
       retries: 3
       start_period: 10s
 
+  # User Service
   userservice:
     build:
       context: ./userservice
       dockerfile: Dockerfile
-    container_name: userservice
+    container_name: musicshare-userservice
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -108,15 +189,22 @@ services:
     networks:
       - musicshare-network
 
-  #frontend:
-    # A la espera del frontend para descomentariar
-    #image: frontend:latest
-    #container_name: frontend
-    #ports:
-      #- "3000:3000"
-    #networks:
-      #- musicshare-network
-      
+  # Frontend (descomentariar cuando esté listo)
+  # frontend:
+  #   image: frontend:latest
+  #   container_name: musicshare-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     REACT_APP_API_URL: http://localhost:8081
+  #     REACT_APP_USER_SERVICE_URL: http://localhost:8002
+  #   depends_on:
+  #     - music-service
+  #     - userservice
+  #   networks:
+  #     - musicshare-network
+
 networks:
   musicshare-network:
     driver: bridge
@@ -126,3 +214,5 @@ volumes:
     driver: local
   postgres_data:
     driver: local
+  # redis_data:
+  #   driver: local
