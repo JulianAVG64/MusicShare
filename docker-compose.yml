@@ -148,6 +148,31 @@ services:
       retries: 3
       start_period: 10s
 
+  #notificationservice:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: musicshare_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Panel de administración opcional
+    networks:
+      - musicshare-network
+
+  notificationservice:
+    build:
+      context: ./notificationservice
+      dockerfile: Dockerfile
+    container_name: notificationservice
+    depends_on:
+      - rabbitmq
+    environment:
+      AMQP_URL: "amqp://guest:guest@rabbitmq/"
+      QUEUE_NAME: "notifications"
+    ports:
+      - "8082:8082"
+    networks:
+      - musicshare-network
+
 networks:
   musicshare-network:
     driver: bridge
