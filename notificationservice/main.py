@@ -9,9 +9,9 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pika.adapters.asyncio_connection import AsyncioConnection
 import time
+from pydantic import BaseModel # [-- NUEVO --] Importamos BaseModel
 
 # --- Configuración de Logging ---
-# Configura un logging estructurado similar al que se describe en el proyecto.
 logging.basicConfig(
     level=logging.INFO,
     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}',
@@ -21,11 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 # --- Gestor de Conexiones WebSocket ---
-# Clase para gestionar de forma centralizada todas las conexiones activas.
 class ConnectionManager:
     """Gestiona las conexiones WebSocket activas, asociando cada conexión a un user_id."""
     def __init__(self):
-        # Almacena las conexiones activas. La clave es el user_id y el valor es el objeto WebSocket.
         self.active_connections: Dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str):
@@ -49,7 +47,6 @@ class ConnectionManager:
                 logger.info(f"Mensaje enviado a {user_id}: {json.dumps(message)}")
             except Exception as e:
                 logger.error(f"Error al enviar mensaje a {user_id}: {e}")
-                # Si hay un error, es probable que la conexión esté rota.
                 self.disconnect(user_id)
 
 
@@ -62,8 +59,15 @@ app = FastAPI(
 manager = ConnectionManager()
 
 
+# [-- NUEVO --] Modelo Pydantic para validar los datos de la notificación
+class NotificationPayload(BaseModel):
+    """Define la estructura esperada para una solicitud de notificación."""
+    recipient_id: str
+    payload: Dict
+
+
 # --- Consumidor de RabbitMQ ---
-# Se encarga de escuchar eventos de otros microservicios.
+# (El código del consumidor de RabbitMQ no cambia y se mantiene igual)
 class RabbitMQConsumer:
     def __init__(self, connection_manager: ConnectionManager):
         self.manager = connection_manager
@@ -80,7 +84,6 @@ class RabbitMQConsumer:
             recipient_id = data.get("recipient_id")
             notification_payload = data.get("payload")
             if recipient_id and notification_payload:
-                # Enviar por WebSocket usando el loop principal de FastAPI
                 asyncio.run_coroutine_threadsafe(
                     self.manager.send_personal_message(notification_payload, recipient_id),
                     asyncio.get_event_loop()
@@ -125,6 +128,21 @@ async def health_check():
     return {"status": "ok", "active_connections": len(manager.active_connections)}
 
 
+# [-- NUEVO --] Endpoint REST para recibir y enviar notificaciones
+@app.post("/api/v1/notify")
+async def create_notification(notification: NotificationPayload):
+    """
+    Recibe una notificación de otro microservicio y la envía al usuario
+    correspondiente a través de WebSocket si está conectado.
+    """
+    logger.info(f"Solicitud de notificación recibida para el usuario: {notification.recipient_id}")
+    await manager.send_personal_message(
+        message=notification.payload,
+        user_id=notification.recipient_id
+    )
+    return {"status": "notification_sent", "recipient_id": notification.recipient_id}
+
+
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     """
@@ -133,10 +151,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     """
     await manager.connect(websocket, user_id)
     try:
-        # Mantiene la conexión abierta para recibir notificaciones push.
-        # Opcionalmente, podría procesar mensajes entrantes del cliente aquí.
         while True:
-            # Esperamos indefinidamente por mensajes. El cliente puede enviar pings.
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -147,5 +162,4 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
 # --- Punto de Entrada para Uvicorn (si se ejecuta directamente) ---
 if __name__ == "__main__":
-    # Escucha en todas las interfaces, crucial para Docker.
     uvicorn.run(app, host="0.0.0.0", port=8082)
