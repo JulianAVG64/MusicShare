@@ -12,12 +12,22 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code (incluye proto ya generado)
-COPY app/ ./app/
+COPY app/ .
+
+RUN python -m grpc_tools.protoc \
+    -Iproto \
+    --python_out=proto \
+    --grpc_python_out=proto \
+    proto/metadata.proto
+
+RUN touch proto/__init__.py
+
+RUN sed -i 's/^import metadata_pb2 as metadata__pb2/from . import metadata_pb2 as metadata__pb2/' proto/metadata_pb2_grpc.py
 
 # Verify proto files exist
-RUN ls -la app/proto/ && \
-    test -f app/proto/metadata_pb2.py && \
-    test -f app/proto/metadata_pb2_grpc.py || \
+RUN ls -la proto/ && \
+    test -f proto/metadata_pb2.py && \
+    test -f proto/metadata_pb2_grpc.py || \
     (echo "ERROR: Proto files not found!" && exit 1)
 
 # Create non-root user
@@ -31,4 +41,4 @@ EXPOSE 50051
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-m", "main"]

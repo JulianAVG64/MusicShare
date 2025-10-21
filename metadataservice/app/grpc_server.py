@@ -5,9 +5,9 @@ import signal
 import sys
 from typing import Optional
 
-from app.proto import metadata_pb2, metadata_pb2_grpc
-from app.services.metadata_service import MetadataService
-from app.config import settings
+from proto import metadata_pb2, metadata_pb2_grpc
+from services.metadata_service import MetadataService
+from config import settings
 
 logger = logging.getLogger(__name__)
 

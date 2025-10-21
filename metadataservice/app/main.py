@@ -14,8 +14,8 @@ from pathlib import Path
 # Add app directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.grpc_server import serve
-from app.config import settings
+from grpc_server import serve
+from config import settings
 
 
 def setup_logging():

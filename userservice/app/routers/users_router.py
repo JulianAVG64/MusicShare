@@ -8,7 +8,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=schemas.UserOut)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
-    return schemas.UserOut.model_validate(current_user)
+    return schemas.UserOut.from_orm(current_user)
 
 
 @router.get("/{user_id}", response_model=schemas.UserPublic)

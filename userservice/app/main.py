@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth_router, users_router, proxy_router
+from .routers import auth_router, users_router
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
 

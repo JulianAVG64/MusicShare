@@ -1,14 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from .. import crud, schemas
+from .. import crud, schemas, models, auth
 from ..auth import get_db, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=schemas.UserOut)
-def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(email: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+    ):
+    # Reconstruimos el objeto que la lógica CRUD espera
+    user_in = schemas.UserCreate(email=email, username=username, password=password)
     if crud.get_user_by_email(db, user_in.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -19,6 +25,7 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already taken"
         )
+    user_in = schemas.UserCreate(email=email, username=username, password=password)
     user = crud.create_user(db, user_in)
 
     return schemas.UserOut.from_orm(user)

@@ -7,7 +7,7 @@ import time
 import logging
 from functools import wraps
 
-from app.config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 

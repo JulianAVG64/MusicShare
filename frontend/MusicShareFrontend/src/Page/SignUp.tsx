@@ -31,12 +31,16 @@ export default function SignUp({ theme }: Props) {
     };
 
     try {
-      const res = await fetch("http://localhost:8002/auth/register", {
+      const res = await fetch("api/users/auth/register", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify(payload),
+        body: new URLSearchParams({
+          email: email,       
+          password: password,
+          username: name,
+        }),
       });
 
       const data = await res.json();

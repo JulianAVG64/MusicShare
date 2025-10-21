@@ -2,10 +2,10 @@ from typing import Optional, List, Dict, Any
 import logging
 from datetime import datetime
 
-from app.services.spotify_client import SpotifyClient
-from app.services.matching_service import MatchingService
-from app.services.cache_service import get_cache_service
-from app.config import settings
+from services.spotify_client import SpotifyClient
+from services.matching_service import MatchingService
+from services.cache_service import get_cache_service
+from config import settings
 
 logger = logging.getLogger(__name__)
 

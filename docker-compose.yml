@@ -2,9 +2,25 @@
 # Version: 1.0
 # Description: Orquestación completa de los servicios de MusicShare.
 
-version: '3.8'
 
 services:
+
+# === API GATEWAY ===
+  traefik:
+    image: traefik:v3.0
+    container_name: musicshare_traefik
+    # Ya no usamos 'command', la configuración está en los archivos
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      # Mapeamos el archivo de configuración que acabamos de crear
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # Mantenemos el socket de Docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - musicshare-network
+
   # PostgresDB Database
   postgres:
     image: postgres:15
@@ -67,62 +83,62 @@ services:
   #   command: redis-server --appendonly yes
 
   # Metadata Service (Spotify enrichment)
-  metadata-service:
-    build:
-      context: ./metadataservice
-      dockerfile: Dockerfile
-    container_name: musicshare-metadata-service
-    restart: unless-stopped
-    ports:
-      - "50051:50051"
-    environment:
-      # Application
-      ENVIRONMENT: production
-      LOG_LEVEL: info
-      LOG_FORMAT: json
-      DEBUG: "false"
+  # metadata-service:
+  #   build:
+  #     context: ./metadataservice
+  #     dockerfile: Dockerfile
+  #   container_name: musicshare-metadata-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "50051:50051"
+  #   environment:
+  #     # Application
+  #     ENVIRONMENT: production
+  #     LOG_LEVEL: info
+  #     LOG_FORMAT: json
+  #     DEBUG: "false"
       
-      # gRPC
-      GRPC_HOST: 0.0.0.0
-      GRPC_PORT: 50051
-      GRPC_MAX_WORKERS: 10
+  #     # gRPC
+  #     GRPC_HOST: 0.0.0.0
+  #     GRPC_PORT: 50051
+  #     GRPC_MAX_WORKERS: 10
       
-      # Spotify API (IMPORTANTE: Configurar con tus credenciales)
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-your_client_id}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-your_client_secret}
-      SPOTIFY_MARKET: US
+  #     # Spotify API (IMPORTANTE: Configurar con tus credenciales)
+  #     SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-your_client_id}
+  #     SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-your_client_secret}
+  #     SPOTIFY_MARKET: US
       
-      # Cache (DESHABILITADO - usando in-memory)
-      # REDIS_URL: redis://redis:6379/0
-      REDIS_URL: ""
-      CACHE_ENABLED: "true"  # true = in-memory cache
-      CACHE_TTL: 3600
+  #     # Cache (DESHABILITADO - usando in-memory)
+  #     # REDIS_URL: redis://redis:6379/0
+  #     REDIS_URL: ""
+  #     CACHE_ENABLED: "true"  # true = in-memory cache
+  #     CACHE_TTL: 3600
       
-      # Rate limiting
-      SPOTIFY_REQUESTS_PER_SECOND: 10
-      MAX_BATCH_SIZE: 50
-      REQUEST_TIMEOUT: 30
+  #     # Rate limiting
+  #     SPOTIFY_REQUESTS_PER_SECOND: 10
+  #     MAX_BATCH_SIZE: 50
+  #     REQUEST_TIMEOUT: 30
       
-      # Matching
-      FUZZY_MATCHING_THRESHOLD: 0.8
-      TITLE_WEIGHT: 0.5
-      ARTIST_WEIGHT: 0.4
-      ALBUM_WEIGHT: 0.1
+  #     # Matching
+  #     FUZZY_MATCHING_THRESHOLD: 0.8
+  #     TITLE_WEIGHT: 0.5
+  #     ARTIST_WEIGHT: 0.4
+  #     ALBUM_WEIGHT: 0.1
       
-      # Retry
-      MAX_RETRIES: 3
-      RETRY_DELAY: 1.0
-    # depends_on:
-    #   redis:
-    #     condition: service_healthy
-    networks:
-      - musicshare-network
-    healthcheck:
-      test: ["CMD-SHELL", "python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); result = s.connect_ex((\"localhost\", 50051)); s.close(); exit(0 if result == 0 else 1)'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+  #     # Retry
+  #     MAX_RETRIES: 3
+  #     RETRY_DELAY: 1.0
+  #   # depends_on:
+  #   #   redis:
+  #   #     condition: service_healthy
+  #   networks:
+  #     - musicshare-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); result = s.connect_ex((\"localhost\", 50051)); s.close(); exit(0 if result == 0 else 1)'"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
 
   # Music Service
   music-service:
@@ -131,8 +147,6 @@ services:
       dockerfile: Dockerfile
     container_name: musicshare-music-service
     restart: unless-stopped
-    ports:
-      - "8081:8081"
     environment:
       # Server configuration
       SERVER_PORT: 8081
@@ -148,17 +162,23 @@ services:
       STORAGE_PATH: /app/uploads
       
       # Metadata Service (AHORA HABILITADO)
-      METADATA_SERVICE_GRPC: metadata-service:50051
-      METADATA_SERVICE_HTTP: ""
+      #METADATA_SERVICE_GRPC: metadata-service:50051
+      #METADATA_SERVICE_HTTP: ""
     volumes:
       - ./uploads:/app/uploads
     depends_on:
       mongodb:
         condition: service_healthy
-      metadata-service:
-        condition: service_healthy
+      #metadata-service:
+        #condition: service_healthy
     networks:
       - musicshare-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.music-service.rule=PathPrefix(`/api/music`)"
+      - "traefik.http.middlewares.music-service-stripprefix.stripprefix.prefixes=/api/music"
+      - "traefik.http.routers.music-service.middlewares=music-service-stripprefix"
+      - "traefik.http.services.music-service.loadbalancer.server.port=8081"
     healthcheck:
       test:
         [
@@ -197,12 +217,16 @@ services:
       POSTGRES_PORT: 5432
       SECRET_KEY: "replace-this-secret"
       MUSICSERVICE_URL: "http://music-service:8081"
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./userservice/app:/app/app:ro
+    #volumes:
+    #  - ./userservice/app:/app/app:ro
     networks:
       - musicshare-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.userservice.rule=PathPrefix(`/api/users`)"
+      - "traefik.http.middlewares.userservice-stripprefix.stripprefix.prefixes=/api/users"
+      - "traefik.http.routers.userservice.middlewares=userservice-stripprefix"
+      - "traefik.http.services.userservice.loadbalancer.server.port=8002"
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -211,7 +235,7 @@ services:
       - "5672:5672"
       - "15672:15672" # Panel de administración opcional
     networks:
-      - musicshare_network
+      - musicshare-network
 
   notificationservice:
     build:
@@ -223,10 +247,18 @@ services:
     environment:
       AMQP_URL: "amqp://guest:guest@rabbitmq/"
       QUEUE_NAME: "notifications"
-    ports:
-      - "8082:8082"
     networks:
-      - musicshare_network
+      - musicshare-network
+    labels:
+      - "traefik.enable=true"
+      # Router para la API REST
+      - "traefik.http.routers.notificationservice-rest.rule=PathPrefix(`/api/notifications`)"
+      - "traefik.http.middlewares.notificationservice-stripprefix.stripprefix.prefixes=/api/notifications"
+      - "traefik.http.routers.notificationservice-rest.middlewares=notificationservice-stripprefix"
+      - "traefik.http.services.notificationservice.loadbalancer.server.port=8082"
+      # Router para WebSockets
+      - "traefik.http.routers.notificationservice-ws.rule=PathPrefix(`/ws`)"
+      - "traefik.http.routers.notificationservice-ws.service=notificationservice" # Reutiliza el servicio definido arriba
 
   #frontend:
   frontend:
@@ -237,52 +269,23 @@ services:
         NODE_ENV: production
     container_name: musicshare-frontend
     restart: unless-stopped
-    ports:
-      - "3000:80" # Puerto host:puerto contenedor
+    labels:
+      - "traefik.enable=true"
+      # Regla que atrapa todo el tráfico restante y lo envía al frontend
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
     depends_on:
       - userservice
       - music-service
     networks:
       - musicshare-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:80/",
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  #notificationservice:
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: musicshare_rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672" # Panel de administración opcional
-    networks:
-      - musicshare-network
-
-  notificationservice:
-    build:
-      context: ./notificationservice
-      dockerfile: Dockerfile
-    container_name: notificationservice
-    depends_on:
-      - rabbitmq
-    environment:
-      AMQP_URL: "amqp://guest:guest@rabbitmq/"
-      QUEUE_NAME: "notifications"
-    ports:
-      - "8082:8082"
-    networks:
-      - musicshare-network
 
 networks:
   musicshare-network:
