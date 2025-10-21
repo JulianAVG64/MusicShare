@@ -12,7 +12,6 @@ class UserCreate(UserBase):
     profile_picture_url: str = ""
     bio: str = ""
 
-
 class UserOut(UserBase):
     user_id: int
     profile_picture_url: str

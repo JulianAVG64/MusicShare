@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth_router, users_router
-from . import models 
+from .routers import auth_router, users_router, proxy_router
+from fastapi.middleware.cors import CORSMiddleware
+from . import models
 
 app = FastAPI(title="Users Service - MusicShare")
 
@@ -19,6 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# create tables at startup (simple approach; replace with migrations for production)
+Base.metadata.create_all(bind=engine)
 # Crear tablas al iniciar la aplicación
 @app.on_event("startup")
 def on_startup():

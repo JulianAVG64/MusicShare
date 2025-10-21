@@ -132,11 +132,11 @@ services:
       SERVER_PORT: 8081
       ENVIRONMENT: production
       LOG_LEVEL: info
-      
+
       # MongoDB configuration
       MONGODB_URI: mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
       MONGODB_DATABASE: musicshare
-      
+
       # Storage configuration
       STORAGE_TYPE: local
       STORAGE_PATH: /app/uploads
@@ -154,7 +154,16 @@ services:
     networks:
       - musicshare-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "--method=GET",
+          "http://localhost:8081/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -189,21 +198,61 @@ services:
     networks:
       - musicshare-network
 
-  # Frontend (descomentariar cuando esté listo)
-  # frontend:
-  #   image: frontend:latest
-  #   container_name: musicshare-frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     REACT_APP_API_URL: http://localhost:8081
-  #     REACT_APP_USER_SERVICE_URL: http://localhost:8002
-  #   depends_on:
-  #     - music-service
-  #     - userservice
-  #   networks:
-  #     - musicshare-network
+  #frontend:
+  frontend:
+    build:
+      context: ./frontend/MusicShareFrontend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: musicshare-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # Puerto host:puerto contenedor
+    depends_on:
+      - userservice
+      - music-service
+    networks:
+      - musicshare-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  #notificationservice:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: musicshare_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Panel de administración opcional
+    networks:
+      - musicshare-network
+
+  notificationservice:
+    build:
+      context: ./notificationservice
+      dockerfile: Dockerfile
+    container_name: notificationservice
+    depends_on:
+      - rabbitmq
+    environment:
+      AMQP_URL: "amqp://guest:guest@rabbitmq/"
+      QUEUE_NAME: "notifications"
+    ports:
+      - "8082:8082"
+    networks:
+      - musicshare-network
 
 networks:
   musicshare-network:
