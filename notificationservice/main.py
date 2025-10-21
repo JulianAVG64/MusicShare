@@ -2,14 +2,16 @@ import asyncio
 import json
 import logging
 from typing import Dict, List
+import threading
 
 import pika
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pika.adapters.asyncio_connection import AsyncioConnection
+import time
+from pydantic import BaseModel # [-- NUEVO --] Importamos BaseModel
 
 # --- Configuración de Logging ---
-# Configura un logging estructurado similar al que se describe en el proyecto.
 logging.basicConfig(
     level=logging.INFO,
     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}',
@@ -19,11 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 # --- Gestor de Conexiones WebSocket ---
-# Clase para gestionar de forma centralizada todas las conexiones activas.
 class ConnectionManager:
     """Gestiona las conexiones WebSocket activas, asociando cada conexión a un user_id."""
     def __init__(self):
-        # Almacena las conexiones activas. La clave es el user_id y el valor es el objeto WebSocket.
         self.active_connections: Dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str):
@@ -47,7 +47,6 @@ class ConnectionManager:
                 logger.info(f"Mensaje enviado a {user_id}: {json.dumps(message)}")
             except Exception as e:
                 logger.error(f"Error al enviar mensaje a {user_id}: {e}")
-                # Si hay un error, es probable que la conexión esté rota.
                 self.disconnect(user_id)
 
 
@@ -60,86 +59,88 @@ app = FastAPI(
 manager = ConnectionManager()
 
 
+# [-- NUEVO --] Modelo Pydantic para validar los datos de la notificación
+class NotificationPayload(BaseModel):
+    """Define la estructura esperada para una solicitud de notificación."""
+    recipient_id: str
+    payload: Dict
+
+
 # --- Consumidor de RabbitMQ ---
-# Se encarga de escuchar eventos de otros microservicios.
+# (El código del consumidor de RabbitMQ no cambia y se mantiene igual)
 class RabbitMQConsumer:
-    """Consume mensajes de una cola de RabbitMQ y los reenvía a través del ConnectionManager."""
     def __init__(self, connection_manager: ConnectionManager):
         self.manager = connection_manager
-        # TODO: Mover a variables de entorno en docker-compose.yml
         self.amqp_url = "amqp://guest:guest@rabbitmq/"
         self.queue_name = "notifications"
+        self.connection = None
+        self.channel = None
 
-    async def on_message(self, message: pika.channel.AMQP.Basic.Deliver, body: bytes):
-        """Callback que se ejecuta al recibir un mensaje de RabbitMQ."""
+    def on_message(self, ch, method, properties, body):
         try:
-            # Decodifica el cuerpo del mensaje
             payload_str = body.decode('utf-8')
             logger.info(f"Mensaje recibido de RabbitMQ: {payload_str}")
-            
-            # Parsea el JSON
             data = json.loads(payload_str)
-            
-            # Valida que el mensaje tenga la estructura esperada
             recipient_id = data.get("recipient_id")
             notification_payload = data.get("payload")
-
             if recipient_id and notification_payload:
-                # Envía la notificación al usuario a través de WebSocket
-                await self.manager.send_personal_message(notification_payload, recipient_id)
+                asyncio.run_coroutine_threadsafe(
+                    self.manager.send_personal_message(notification_payload, recipient_id),
+                    asyncio.get_event_loop()
+                )
             else:
                 logger.warning(f"Mensaje malformado recibido, descartado: {payload_str}")
-
-        except json.JSONDecodeError:
-            logger.error(f"Error al decodificar JSON del mensaje: {body.decode('utf-8')}")
         except Exception as e:
             logger.error(f"Error procesando mensaje de RabbitMQ: {e}")
 
-    async def consume(self):
-        """Establece la conexión con RabbitMQ y empieza a consumir mensajes."""
+    def consume(self):
         while True:
             try:
-                connection = await asyncio.wait_for(
-                    AsyncioConnection(pika.URLParameters(self.amqp_url)),
-                    timeout=10
-                )
-                channel = await connection.channel()
-                
-                # Declara la cola (idempotente)
-                await channel.queue_declare(self.queue_name, durable=True)
-                
+                params = pika.URLParameters(self.amqp_url)
+                self.connection = pika.BlockingConnection(params)
+                self.channel = self.connection.channel()
+                self.channel.queue_declare(queue=self.queue_name, durable=True)
                 logger.info("Conectado a RabbitMQ y esperando mensajes...")
-                
-                # Empieza a consumir mensajes de la cola
-                await channel.basic_consume(self.queue_name, self.on_message, auto_ack=True)
-
-                # Mantener el consumidor activo
-                # Esperamos a que la conexión se cierre por algún motivo
-                await connection.closing
-                logger.warning("La conexión con RabbitMQ se ha cerrado, intentando reconectar...")
-
-            except asyncio.TimeoutError:
-                logger.error("No se pudo conectar a RabbitMQ en el tiempo esperado. Reintentando en 5 segundos...")
+                self.channel.basic_consume(
+                    queue=self.queue_name,
+                    on_message_callback=self.on_message,
+                    auto_ack=True
+                )
+                self.channel.start_consuming()
             except Exception as e:
                 logger.error(f"Error de conexión con RabbitMQ: {e}. Reintentando en 5 segundos...")
-            
-            await asyncio.sleep(5)
+                if self.connection:
+                    self.connection.close()
+                time.sleep(5)
 
 
 # --- Eventos de Ciclo de Vida de la App ---
 @app.on_event("startup")
 async def startup_event():
-    """Al iniciar la app, crea una tarea en segundo plano para el consumidor de RabbitMQ."""
     consumer = RabbitMQConsumer(manager)
-    asyncio.create_task(consumer.consume())
+    threading.Thread(target=consumer.consume, daemon=True).start()
     logger.info("Servicio de Notificaciones iniciado. Tarea de consumidor RabbitMQ creada.")
-
 
 # --- Endpoints de la API ---
 @app.get("/health")
 async def health_check():
     """Endpoint de health check para verificar que el servicio está activo."""
     return {"status": "ok", "active_connections": len(manager.active_connections)}
+
+
+# [-- NUEVO --] Endpoint REST para recibir y enviar notificaciones
+@app.post("/api/v1/notify")
+async def create_notification(notification: NotificationPayload):
+    """
+    Recibe una notificación de otro microservicio y la envía al usuario
+    correspondiente a través de WebSocket si está conectado.
+    """
+    logger.info(f"Solicitud de notificación recibida para el usuario: {notification.recipient_id}")
+    await manager.send_personal_message(
+        message=notification.payload,
+        user_id=notification.recipient_id
+    )
+    return {"status": "notification_sent", "recipient_id": notification.recipient_id}
 
 
 @app.websocket("/ws/{user_id}")
@@ -150,10 +151,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     """
     await manager.connect(websocket, user_id)
     try:
-        # Mantiene la conexión abierta para recibir notificaciones push.
-        # Opcionalmente, podría procesar mensajes entrantes del cliente aquí.
         while True:
-            # Esperamos indefinidamente por mensajes. El cliente puede enviar pings.
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -164,5 +162,4 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
 # --- Punto de Entrada para Uvicorn (si se ejecuta directamente) ---
 if __name__ == "__main__":
-    # Escucha en todas las interfaces, crucial para Docker.
     uvicorn.run(app, host="0.0.0.0", port=8082)

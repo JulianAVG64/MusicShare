@@ -5,6 +5,7 @@
 version: '3.8'
 
 services:
+  # PostgresDB Database
   postgres:
     image: postgres:15
     container_name: musicshare_postgres
@@ -13,7 +14,7 @@ services:
       POSTGRES_PASSWORD: music_pass
       POSTGRES_DB: music_db
     volumes:
-      - musicshare_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -22,37 +23,172 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare_network
+      - musicshare-network
 
+  # MongoDB Database
   mongodb:
-    image: mongo:6
-    container_name: musicshare_mongodb
+    image: mongo:7.0
+    container_name: musicshare-mongodb
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: musicshare
     volumes:
-      - musicshare_mongo_data:/data/db
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
-      - musicshare_network
+      - musicshare-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  musicservice:
+  # Redis Cache (opcional para MetadataService)
+  # DESHABILITADO: Usando in-memory cache por ahora
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: musicshare-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - musicshare-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   command: redis-server --appendonly yes
+
+  # Metadata Service (Spotify enrichment)
+  metadata-service:
+    build:
+      context: ./metadataservice
+      dockerfile: Dockerfile
+    container_name: musicshare-metadata-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      # Application
+      ENVIRONMENT: production
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      DEBUG: "false"
+      
+      # gRPC
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
+      GRPC_MAX_WORKERS: 10
+      
+      # Spotify API (IMPORTANTE: Configurar con tus credenciales)
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-your_client_id}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-your_client_secret}
+      SPOTIFY_MARKET: US
+      
+      # Cache (DESHABILITADO - usando in-memory)
+      # REDIS_URL: redis://redis:6379/0
+      REDIS_URL: ""
+      CACHE_ENABLED: "true"  # true = in-memory cache
+      CACHE_TTL: 3600
+      
+      # Rate limiting
+      SPOTIFY_REQUESTS_PER_SECOND: 10
+      MAX_BATCH_SIZE: 50
+      REQUEST_TIMEOUT: 30
+      
+      # Matching
+      FUZZY_MATCHING_THRESHOLD: 0.8
+      TITLE_WEIGHT: 0.5
+      ARTIST_WEIGHT: 0.4
+      ALBUM_WEIGHT: 0.1
+      
+      # Retry
+      MAX_RETRIES: 3
+      RETRY_DELAY: 1.0
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
+    networks:
+      - musicshare-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); result = s.connect_ex((\"localhost\", 50051)); s.close(); exit(0 if result == 0 else 1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Music Service
+  music-service:
     build:
       context: ./musicservice
       dockerfile: Dockerfile
-    container_name: musicservice
+    container_name: musicshare-music-service
+    restart: unless-stopped
     ports:
-      - "8080:8080"
-    networks:
-      - musicshare_network
+      - "8081:8081"
+    environment:
+      # Server configuration
+      SERVER_PORT: 8081
+      ENVIRONMENT: production
+      LOG_LEVEL: info
 
+      # MongoDB configuration
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
+      MONGODB_DATABASE: musicshare
+
+      # Storage configuration
+      STORAGE_TYPE: local
+      STORAGE_PATH: /app/uploads
+      
+      # Metadata Service (AHORA HABILITADO)
+      METADATA_SERVICE_GRPC: metadata-service:50051
+      METADATA_SERVICE_HTTP: ""
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      metadata-service:
+        condition: service_healthy
+    networks:
+      - musicshare-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "--method=GET",
+          "http://localhost:8081/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # User Service
   userservice:
     build:
       context: ./userservice
       dockerfile: Dockerfile
-    container_name: userservice
+    container_name: musicshare-userservice
+    restart: unless-stopped
     depends_on:
-      - postgres
-      - mongodb
-      - musicservice
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      music-service:
+        condition: service_started
     environment:
       POSTGRES_USER: music_user
       POSTGRES_PASSWORD: music_pass
@@ -60,13 +196,13 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       SECRET_KEY: "replace-this-secret"
-      MUSICSERVICE_URL: "http://musicservice:8080"
+      MUSICSERVICE_URL: "http://music-service:8081"
     ports:
-      - "8001:8001"
+      - "8002:8002"
     volumes:
       - ./userservice/app:/app/app:ro
     networks:
-      - musicshare_network
+      - musicshare-network
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -93,18 +229,69 @@ services:
       - musicshare_network
 
   #frontend:
-    # A la espera del frontend para descomentariar
-    #image: frontend:latest
-    #container_name: frontend
-    #ports:
-      #- "3000:3000"
-    #networks:
-      #- musicshare_network
+  frontend:
+    build:
+      context: ./frontend/MusicShareFrontend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: musicshare-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # Puerto host:puerto contenedor
+    depends_on:
+      - userservice
+      - music-service
+    networks:
+      - musicshare-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-volumes:
-  musicshare_postgres_data:
-  musicshare_mongo_data:
+  #notificationservice:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: musicshare_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Panel de administración opcional
+    networks:
+      - musicshare-network
+
+  notificationservice:
+    build:
+      context: ./notificationservice
+      dockerfile: Dockerfile
+    container_name: notificationservice
+    depends_on:
+      - rabbitmq
+    environment:
+      AMQP_URL: "amqp://guest:guest@rabbitmq/"
+      QUEUE_NAME: "notifications"
+    ports:
+      - "8082:8082"
+    networks:
+      - musicshare-network
 
 networks:
-  musicshare_network:
+  musicshare-network:
     driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  postgres_data:
+    driver: local
+  # redis_data:
+  #   driver: local

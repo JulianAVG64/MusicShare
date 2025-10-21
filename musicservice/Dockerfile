@@ -1,7 +1,7 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-# Install build dependencies
+# Install build dependencies including swag
 RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
 
 # Set working directory
@@ -13,8 +13,14 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
+# Install swag for Swagger generation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 # Copy source code
 COPY . .
+
+# Generate Swagger documentation
+RUN swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
 # Build the application with optimizations
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
@@ -23,7 +29,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o music-service ./cmd/server
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.18
 
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata wget
@@ -38,6 +44,9 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/music-service .
 
+# Copy Swagger docs from builder stage
+COPY --from=builder /app/docs ./docs
+
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads/audio /app/uploads/temp /app/uploads/covers && \
     chown -R appuser:appgroup /app && \
@@ -49,7 +58,7 @@ USER appuser
 # Expose port
 EXPOSE 8081
 
-# Health check - usar GET en lugar de HEAD y curl en lugar de wget
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider --method=GET http://localhost:8081/health || exit 1
 

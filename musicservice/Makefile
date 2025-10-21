@@ -15,6 +15,7 @@ help:
 	@echo "  docker-build   - Build Docker image"
 	@echo "  docker-run     - Run Docker container"
 	@echo "  proto-gen      - Generate protobuf files"
+	@echo "  swagger-gen    - Generate Swagger documentation"
 	@echo "  clean          - Clean build artifacts"
 	@echo "  deps           - Download dependencies"
 	@echo "  lint           - Run linter"
@@ -70,11 +71,35 @@ proto-gen:
 		echo "On Ubuntu: apt-get install protobuf-compiler"; \
 	fi
 
+# Generate Swagger documentation
+.PHONY: swagger-gen
+swagger-gen:
+	@echo "Generating Swagger documentation..."
+	@if command -v swag >/dev/null 2>&1; then \
+		swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal; \
+		echo "✅ Swagger docs generated in docs/"; \
+	else \
+		echo "Installing swag..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+		swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal; \
+	fi
+
+# Format Swagger comments
+.PHONY: swagger-fmt
+swagger-fmt:
+	@echo "Formatting Swagger comments..."
+	@if command -v swag >/dev/null 2>&1; then \
+		swag fmt; \
+	else \
+		echo "swag not found. Run 'make swagger-gen' first."; \
+	fi
+
 # Clean build artifacts
 .PHONY: clean
 clean:
 	@echo "Cleaning..."
 	rm -rf bin/
+	rm -rf docs/
 	rm -f coverage.out coverage.html
 	docker rmi $(DOCKER_IMAGE):latest 2>/dev/null || true
 
@@ -102,6 +127,8 @@ dev-setup:
 	go mod download
 	@echo "Creating uploads directory..."
 	mkdir -p uploads/audio uploads/temp uploads/covers
+	@echo "Generating Swagger documentation..."
+	$(MAKE) swagger-gen
 
 # Format code
 .PHONY: fmt
@@ -115,3 +142,45 @@ install-tools:
 	@echo "Installing development tools..."
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install github.com/swaggo/swag/cmd/swag@latest
+	@echo "✅ All tools installed"
+
+# Run with hot reload (requires air)
+.PHONY: dev
+dev:
+	@echo "Running with hot reload..."
+	@if command -v air >/dev/null 2>&1; then \
+		air; \
+	else \
+		echo "Installing air..."; \
+		go install github.com/cosmtrek/air@latest; \
+		air; \
+	fi
+
+# Clean uploads directory
+.PHONY: clean-uploads
+clean-uploads:
+	@echo "Cleaning uploads directory..."
+	rm -rf uploads/audio/* uploads/temp/* uploads/covers/*
+
+# Docker Compose commands
+.PHONY: docker-compose-up
+docker-compose-up:
+	@echo "Starting services with docker-compose..."
+	docker-compose up -d
+
+.PHONY: docker-compose-down
+docker-compose-down:
+	@echo "Stopping services..."
+	docker-compose down
+
+.PHONY: docker-compose-logs
+docker-compose-logs:
+	@echo "Showing logs..."
+	docker-compose logs -f music-service
+
+# All-in-one: generate docs and run
+.PHONY: serve
+serve: swagger-gen
+	@echo "Starting server with updated Swagger docs..."
+	go run ./cmd/server

@@ -29,6 +29,7 @@ message EnrichTrackResponse {
   bool success = 1;
   SpotifyMetadata metadata = 2;
   string error_message = 3;
+  float confidence = 4;  // NUEVO: confianza del match
 }
 
 // Request message for batch enrichment
@@ -68,4 +69,8 @@ message SpotifyMetadata {
   float popularity = 10;
   float confidence = 11;
   string external_url = 12;
+  repeated string artists = 13;      // NUEVO: para colaboraciones
+  string album_type = 14;            // NUEVO: single, album, compilation
+  int32 track_number = 15;           // NUEVO
+  int32 disc_number = 16;            // NUEVO
 }
