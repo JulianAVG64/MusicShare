@@ -49,10 +49,6 @@ venv.bak/
 .env
 .env.local
 
-# Generated protobuf files
-app/proto/metadata_pb2.py
-app/proto/metadata_pb2_grpc.py
-
 # Testing
 .pytest_cache/
 .coverage
