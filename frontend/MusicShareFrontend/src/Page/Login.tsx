@@ -32,9 +32,11 @@ export default function Login({ theme }: Props) {
         }),
       });
 
+      console.log("Creacion de token existosa:", res);
       const data = await res.json();
 
       if (res.ok) {
+        console.log("Login exitoso:", data);
         localStorage.setItem("token", data.access_token);
         setToast({ message: "Inicio de sesión exitoso", type: "success" });
         navigate("/");

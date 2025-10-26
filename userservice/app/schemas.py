@@ -33,6 +33,15 @@ class UserPublic(BaseModel):
     class Config:
         orm_mode = True
 
+class UserUpdate(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+    profile_picture_url: Optional[str] = None
+    bio: Optional[str] = None
+
+    class Config:
+        orm_mode = True
 
 class Token(BaseModel):
     access_token: str

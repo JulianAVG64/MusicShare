@@ -4,7 +4,7 @@ import SignUp from "./Page/SignUp";
 import Login from "./Page/Login";
 import MainLayout from "./layout/MainLayout";
 import IndexLayout from "./layout/IndexLayout";
-
+import ExampleProfile from "./components/ExampleProfile";
 function App() {
   const [theme, setTheme] = useState<"cupcake" | "dark">("cupcake");
 
@@ -30,7 +30,10 @@ function App() {
           <Route path="/signup" element={<SignUp theme={theme} />} />
           <Route path="/login" element={<Login theme={theme} />} />
           <Route path="/" element={<MainLayout setTheme={setTheme} />}>
-            <Route index element={<IndexLayout setTheme={setTheme} />} />
+            <Route element={<IndexLayout setTheme={setTheme} />}>
+              <Route index element={<> {/* index: no hijo, IndexLayout mostrará su contenido por defecto */} </>} />
+              <Route path="perfil" element={<ExampleProfile />} />
+            </Route>
           </Route>
         </Routes>
       </BrowserRouter>

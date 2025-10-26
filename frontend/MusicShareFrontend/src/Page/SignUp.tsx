@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import MailInput from "../components/Inputs/MailInput";
 import PasswordInput from "../components/Inputs/PasswordInput";
 import Toast from "../components/Toast";
-import UsernameInput from "../components/Inputs/UsernameInput";
+import TextInput from "../components/Inputs/TextInput";
 
 type Props = {
   theme: "cupcake" | "dark";
@@ -14,6 +14,8 @@ export default function SignUp({ theme }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
@@ -28,6 +30,8 @@ export default function SignUp({ theme }: Props) {
       email,
       password,
       username: name,
+      first_name: firstName,
+      last_name: lastName,
     };
 
     try {
@@ -49,11 +53,16 @@ export default function SignUp({ theme }: Props) {
         let errorMessage = "Error al crear la cuenta";
         
         if (data.detail) {
+
           if (typeof data.detail === "string") {
             errorMessage = data.detail;
           } else if (Array.isArray(data.detail)) {
-            // FastAPI devuelve un array de errores de validación
-            errorMessage = data.detail.map((err: any) => err.msg).join(", ");
+            // Manejar distintos formatos de error (msg / message)
+            errorMessage = data.detail
+              .map((err: any) => err.msg || err.message || JSON.stringify(err))
+              .join(", ");
+          } else {
+            errorMessage = JSON.stringify(data.detail);
           }
         }
         
@@ -84,7 +93,24 @@ export default function SignUp({ theme }: Props) {
               </p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <UsernameInput onChange={setName} />
+              <TextInput
+                placeholder="Nombre de usuario"
+                value={name}
+                onChange={setName}
+              />
+              <div className="flex gap-2">
+                <TextInput
+                  placeholder="Nombre"
+                  value={firstName}
+                  onChange={setFirstName}
+                />
+                <TextInput
+                  placeholder="Apellido"
+                  value={lastName}
+                  onChange={setLastName}
+                />
+              </div>
+
               <MailInput onChange={setEmail} />
               <PasswordInput onChange={setPassword} />
               <div className="flex items-center justify-start gap-2 text-sm">

@@ -47,3 +47,21 @@ def authenticate_user(db: Session, email: str, password: str):
     if not verify_password(password, user.password_hash):
         return None
     return user
+
+def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
+    """Actualiza campos del usuario"""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        return None
+    changed = False
+    for field, value in user_update.__dict__.items():
+        if value is not None and hasattr(user, field):
+            setattr(user, field, value)
+            changed = True
+    if changed:
+        from datetime import datetime, timezone
+        user.updated_at = datetime.now(timezone.utc)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
