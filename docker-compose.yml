@@ -177,6 +177,29 @@ services:
       - musicshare-network
 
   # ===============================
+  # 💬 Social Service
+  # ===============================
+  social-service:
+    build:
+      context: ./socialservice
+      dockerfile: Dockerfile
+    container_name: musicshare-social-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_db
+      SPRING_DATASOURCE_USERNAME: music_user
+      SPRING_DATASOURCE_PASSWORD: music_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8083:8083"
+    networks:
+      - musicshare-network
+
+
+  # ===============================
   # 🌐 Frontend (React)
   # ===============================
   frontend:
