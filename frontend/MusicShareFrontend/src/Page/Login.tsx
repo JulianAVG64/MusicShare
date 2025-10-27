@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import MailInput from "../components/Inputs/MailInput";
 import PasswordInput from "../components/Inputs/PasswordInput";
 import Toast from "../components/Toast";
+import { apiFetch } from "../lib/api"; // 👈 importa tu api.tsx
+import { setToken } from "../lib/auth"; // 👈 importa el helper de auth
 
 type Props = {
   theme: "cupcake" | "dark";
@@ -32,25 +34,28 @@ export default function Login({ theme }: Props) {
         }),
       });
 
-      console.log("Creacion de token existosa:", res);
+      
       const data = await res.json();
 
-      if (res.ok) {
-        console.log("Login exitoso:", data);
-        localStorage.setItem("token", data.access_token);
-        setToast({ message: "Inicio de sesión exitoso", type: "success" });
-        navigate("/");
-      } else {
-        setToast({
-          message: data.detail || "Error en las credenciales",
-          type: "error",
-        });
-      }
-    } catch (e) {
-      console.log("Error al iniciar sesion:", e);
-    } finally {
-      setIsLoading(false);
+    if (res.ok && data.access_token) {
+      console.log("✅ Login exitoso:", data);
+      console.log("✅ Login exitoso:", data.access_token);
+      setToken(data.access_token); // 👈 guarda token usando auth.tsx
+      setToast({ message: "Inicio de sesión exitoso", type: "success" });
+      navigate("/"); // redirige al home
+    } else {
+      console.error("Error en el login:", data);
+      setToast({
+        message: data.detail || "Credenciales incorrectas",
+        type: "error",
+      });
     }
+  } catch (err: any) {
+    console.error("❌ Error al iniciar sesión:", err);
+    setToast({ message: "No se pudo conectar con el servidor", type: "error" });
+  } finally {
+    setIsLoading(false);
+  }
   };
 
   return (

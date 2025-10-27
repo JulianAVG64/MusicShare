@@ -34,11 +34,12 @@ class UserPublic(BaseModel):
         orm_mode = True
 
 class UserUpdate(BaseModel):
-    username: str
-    first_name: str
-    last_name: str
-    profile_picture_url: Optional[str] = None
-    bio: Optional[str] = None
+    username: str | None = None
+    email: EmailStr | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    profile_picture_url: str | None = None
+    bio: str | None = None
 
     class Config:
         orm_mode = True

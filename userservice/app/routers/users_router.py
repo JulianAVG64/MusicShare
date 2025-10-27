@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas, models
+from .. import schemas, models, crud
 from ..auth import get_db, get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -19,8 +19,12 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     return schemas.UserPublic.from_orm(user)
 
 @router.put("/me", response_model=schemas.UserOut)
-def update_me(user_in: schemas.UserUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    updated = crud.update_user(db, current_user.id, user_in)
+def update_me(
+    user_in: schemas.UserUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    updated = crud.update_user(db, current_user.user_id, user_in)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return schemas.UserOut.from_orm(updated)

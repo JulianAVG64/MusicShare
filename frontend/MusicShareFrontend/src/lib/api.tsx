@@ -1,23 +1,76 @@
-import { getToken } from "./auth";
+import { getToken, removeToken } from "./auth";
 
 const API_BASE = "http://localhost:8002";
 
-export async function apiFetch(path: string, opts: RequestInit = {}) {
-  const token = getToken();
-  const headers = new Headers(opts.headers || {});
-  headers.set("Accept", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+// --- 🔒 Función para validar si el token sigue vigente ---
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
+  try {
+    const [, payload] = token.split(".");
+    const decoded = JSON.parse(atob(payload));
+    return decoded.exp * 1000 > Date.now();
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return false;
+  }
+}
+
+// --- 🧠 Middleware de requests ---
+// export async function apiFetch(
+//   url: string,
+//   options: RequestInit = {}
+// ): Promise<Response> {
+//   const token = getToken();
+export async function apiFetch(
+  pathOrUrl: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const token = getToken();
+
+
+
+
+
+  // 1️⃣ Verificar si el token es válido antes de enviar
+  if (!isTokenValid(token)) {
+    console.warn("Token expirado o inválido. Cerrando sesión...");
+    removeToken();
+    window.location.href = "/login";
+    throw new Error("Token inválido o expirado");
+  }
+
+  // 2️⃣ Construir URL (soporta path relativo o URL completa)
+  const url = pathOrUrl.startsWith("http")
+    ? pathOrUrl
+    : `${API_BASE}${pathOrUrl}`;
+
+
+  // 2️⃣ Preparar headers
+  const headers = new Headers(options.headers || {});
+//   headers.set("Content-Type", "application/json");
+//   if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData))
+    headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  // 3️⃣ Ejecutar la petición
+  const res = await fetch(url, {
+    ...options,
     headers,
-    credentials: "include", // si usas cookies de sesión
   });
 
-  // manejo básico: si 401 -> opcional redirigir a login o intentar refresh
+  // 4️⃣ Manejar errores comunes
   if (res.status === 401) {
-    // lógica de refresh o logout centralizada aquí
+    console.warn("Token rechazado por el backend");
+    removeToken();
+    window.location.href = "/login";
   }
+
+//   if (!res.ok) {
+//     const text = await res.text();
+//     throw new Error(`Error ${res.status}: ${text}`);
+//   }
 
   return res;
 }
