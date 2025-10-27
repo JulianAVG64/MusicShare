@@ -23,7 +23,7 @@ export default function MainLayout({ setTheme }: Props) {
       }
 
       try {
-        const res = await fetch("http://localhost:8002/users/me", {
+        const res = await fetch("api/users/users/me", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

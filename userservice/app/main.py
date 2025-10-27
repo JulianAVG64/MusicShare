@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import auth_router, users_router
-from . import models 
+from fastapi.middleware.cors import CORSMiddleware
+from . import models
 
 app = FastAPI(title="Users Service - MusicShare")
 

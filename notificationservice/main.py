@@ -129,7 +129,7 @@ async def health_check():
 
 
 # [-- NUEVO --] Endpoint REST para recibir y enviar notificaciones
-@app.post("/api/v1/notify")
+@app.post("/notify")
 async def create_notification(notification: NotificationPayload):
     """
     Recibe una notificación de otro microservicio y la envía al usuario

@@ -11,7 +11,7 @@ except ImportError:
     REDIS_AVAILABLE = False
     redis = None  # Prevent undefined variable
 
-from app.config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 

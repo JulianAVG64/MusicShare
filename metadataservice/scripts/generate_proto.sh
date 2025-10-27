@@ -54,10 +54,10 @@ if [ $? -eq 0 ]; then
     # Fix imports in generated files (Python import issue)
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        sed -i '' 's/import metadata_pb2/from app.proto import metadata_pb2/g' app/proto/metadata_pb2_grpc.py
+        sed -i '' 's/import metadata_pb2/from proto import metadata_pb2/g' app/proto/metadata_pb2_grpc.py
     else
         # Linux
-        sed -i 's/import metadata_pb2/from app.proto import metadata_pb2/g' app/proto/metadata_pb2_grpc.py
+        sed -i 's/import metadata_pb2/from proto import metadata_pb2/g' app/proto/metadata_pb2_grpc.py
     fi
     
     echo -e "${GREEN}✅ Import paths fixed${NC}"
