@@ -12,7 +12,7 @@ type UserDTO = {
   profile_picture_url?: string;
   bio?: string;
 };
-
+console.log("editProfile loaded");
 export default function EditProfile() {
   const navigate = useNavigate();
   const stored = getUser<UserDTO>();
@@ -24,10 +24,13 @@ export default function EditProfile() {
     async function load() {
       try {
         const res = await apiFetch("/users/me");
+        console.log("Fetch de usuario para editar perfil:", res);
         if (res.ok) {
           const data = await res.json();
           setLocalUser(data);
+          console.log("Usuario cargado para editar perfil:", data);
         } else if (res.status === 401) {
+          console.log("Token inválido o expirado");
           navigate("/login");
         } else {
           setError("No se pudo cargar el usuario");
