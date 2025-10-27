@@ -15,35 +15,74 @@ type UserDTO = {
 console.log("editProfile loaded");
 export default function EditProfile() {
   const navigate = useNavigate();
-  const stored = getUser<UserDTO>();
   const [user, setLocalUser] = useState<UserDTO | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+    //   const navigate = useNavigate();
+//   const stored = getUser<UserDTO>();
+//   const [user, setLocalUser] = useState<UserDTO | null>(null);
+//   const [isSaving, setIsSaving] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+// console.log("Fetch de usuario para editar perfil:", res);
+//   useEffect(() => {
+//     async function load() {
+//       try {
+//         const res = await apiFetch("/users/me");
+//         console.log("Fetch de usuario para editar perfil:", res);
+//         if (res.ok) {
+//           const data = await res.json();
+//           setLocalUser(data);
+//           console.log("Usuario cargado para editar perfil:", data);
+//         } else if (res.status === 401) {
+//           console.log("Token inválido o expirado");
+//           navigate("/login");
+//         } else {
+//           setError("No se pudo cargar el usuario");
+//         }
+//       } catch {
+//         setError("Error de red");
+//       }
+//     }
 
+//     // si hay user almacenado en localStorage, úsalo mientras carga
+//     if (stored) setLocalUser(stored);
+//     load();
+//   }, [navigate, stored]);
   useEffect(() => {
-    async function load() {
+    async function loadUser() {
       try {
+        const stored = getUser<UserDTO>();
+        if (stored) {
+          setLocalUser(stored); // Use stored data first
+        }
+
         const res = await apiFetch("/users/me");
-        console.log("Fetch de usuario para editar perfil:", res);
         if (res.ok) {
           const data = await res.json();
-          setLocalUser(data);
-          console.log("Usuario cargado para editar perfil:", data);
+          setLocalUser(data); // Update with fresh data
+          setUser(data); // Update localStorage
         } else if (res.status === 401) {
-          console.log("Token inválido o expirado");
           navigate("/login");
-        } else {
-          setError("No se pudo cargar el usuario");
         }
-      } catch {
-        setError("Error de red");
+      } catch (err) {
+        console.error("Error loading user:", err);
+        setError("Error al cargar usuario");
+      } finally {
+        setIsLoading(false);
       }
     }
 
-    // si hay user almacenado en localStorage, úsalo mientras carga
-    if (stored) setLocalUser(stored);
-    load();
-  }, [navigate, stored]);
+    loadUser();
+  }, []);
+  if (isLoading) {
+    return <div className="p-6">Cargando...</div>;
+  }
+
+  // Show error state
+  if (error) {
+    return <div className="p-6 text-red-500">{error}</div>;
+  }
 
   if (!user) {
     return <div className="p-6">Cargando...</div>;

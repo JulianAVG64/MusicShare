@@ -39,6 +39,7 @@ export default function Login({ theme }: Props) {
 
     if (res.ok && data.access_token) {
       console.log("✅ Login exitoso:", data);
+      console.log("✅ Login exitoso:", data.access_token);
       setToken(data.access_token); // 👈 guarda token usando auth.tsx
       setToast({ message: "Inicio de sesión exitoso", type: "success" });
       navigate("/"); // redirige al home
