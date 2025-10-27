@@ -14,15 +14,12 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # ["*"] para permitir todos
+    allow_origins= origins,   # ["*"] para permitir todos
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
     allow_headers=["*"],
 )
 
-
-# create tables at startup (simple approach; replace with migrations for production)
-Base.metadata.create_all(bind=engine)
 # Crear tablas al iniciar la aplicación
 @app.on_event("startup")
 def on_startup():

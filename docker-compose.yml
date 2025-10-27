@@ -41,7 +41,9 @@ services:
     networks:
       - musicshare-network
 
-  # MongoDB Database
+  # ===============================
+  # 🍃 MongoDB Database
+  # ===============================
   mongodb:
     image: mongo:7.0
     container_name: musicshare-mongodb
@@ -140,7 +142,9 @@ services:
   #     retries: 5
   #     start_period: 10s
 
-  # Music Service
+  # ===============================
+  # 🎵 Music Service
+  # ===============================
   music-service:
     build:
       context: ./musicservice
@@ -148,22 +152,21 @@ services:
     container_name: musicshare-music-service
     restart: unless-stopped
     environment:
-      # Server configuration
       SERVER_PORT: 8081
       ENVIRONMENT: production
       LOG_LEVEL: info
 
-      # MongoDB configuration
+      # MongoDB
       MONGODB_URI: mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin
       MONGODB_DATABASE: musicshare
 
-      # Storage configuration
+      # Storage
       STORAGE_TYPE: local
       STORAGE_PATH: /app/uploads
-      
-      # Metadata Service (AHORA HABILITADO)
-      #METADATA_SERVICE_GRPC: metadata-service:50051
-      #METADATA_SERVICE_HTTP: ""
+
+      # Metadata Service
+      METADATA_SERVICE_GRPC: metadata-service:50051
+      METADATA_SERVICE_HTTP: ""
     volumes:
       - ./uploads:/app/uploads
     depends_on:
@@ -180,22 +183,15 @@ services:
       - "traefik.http.routers.music-service.middlewares=music-service-stripprefix"
       - "traefik.http.services.music-service.loadbalancer.server.port=8081"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "--method=GET",
-          "http://localhost:8081/health",
-        ]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
 
-  # User Service
+  # ===============================
+  # 👤 User Service
+  # ===============================
   userservice:
     build:
       context: ./userservice
@@ -228,12 +224,63 @@ services:
       - "traefik.http.routers.userservice.middlewares=userservice-stripprefix"
       - "traefik.http.services.userservice.loadbalancer.server.port=8002"
 
+  # ===============================
+  # 💬 Social Service
+  # ===============================
+  social-service:
+    build:
+      context: ./socialservice
+      dockerfile: Dockerfile
+    container_name: musicshare-social-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_db
+      SPRING_DATASOURCE_USERNAME: music_user
+      SPRING_DATASOURCE_PASSWORD: music_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8083:8083"
+    networks:
+      - musicshare-network
+
+
+  # ===============================
+  # 🌐 Frontend (React)
+  # ===============================
+  frontend:
+    build:
+      context: ./frontend/MusicShareFrontend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: musicshare-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - userservice
+      - music-service
+    networks:
+      - musicshare-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===============================
+  # 🐇 RabbitMQ + Notification Service
+  # ===============================
   rabbitmq:
     image: rabbitmq:3-management
     container_name: musicshare_rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672" # Panel de administración opcional
+      - "15672:15672"
     networks:
       - musicshare-network
 
@@ -260,33 +307,10 @@ services:
       - "traefik.http.routers.notificationservice-ws.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.notificationservice-ws.service=notificationservice" # Reutiliza el servicio definido arriba
 
-  #frontend:
-  frontend:
-    build:
-      context: ./frontend/MusicShareFrontend
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
-    container_name: musicshare-frontend
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      # Regla que atrapa todo el tráfico restante y lo envía al frontend
-      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.frontend.priority=1"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
-    depends_on:
-      - userservice
-      - music-service
-    networks:
-      - musicshare-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
+# ===============================
+# 🧭 Network & Volumes
+# ===============================
 networks:
   musicshare-network:
     driver: bridge
@@ -296,5 +320,3 @@ volumes:
     driver: local
   postgres_data:
     driver: local
-  # redis_data:
-  #   driver: local

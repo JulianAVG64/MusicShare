@@ -13,6 +13,7 @@ class UserCreate(UserBase):
     profile_picture_url: str = ""
     bio: str = ""
 
+
 class UserOut(UserBase):
     user_id: int
     profile_picture_url: str
@@ -33,6 +34,16 @@ class UserPublic(BaseModel):
     class Config:
         orm_mode = True
 
+class UserUpdate(BaseModel):
+    username: str | None = None
+    email: EmailStr | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    profile_picture_url: str | None = None
+    bio: str | None = None
+
+    class Config:
+        orm_mode = True
 
 class Token(BaseModel):
     access_token: str

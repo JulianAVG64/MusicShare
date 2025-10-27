@@ -13,6 +13,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate, Outlet } from "react-router-dom";
 
 type Props = {
   setTheme: (theme: "cupcake" | "dark") => void;
@@ -26,6 +27,7 @@ interface Notification {
 }
 
 export default function IndexLayout({ setTheme }: Props) {
+  const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("inicio");
   // [-- MODIFICADO --] Cambiamos el estado para almacenar una lista de notificaciones
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -131,8 +133,12 @@ export default function IndexLayout({ setTheme }: Props) {
                 key={item.id}
                 onClick={() => {
                   setActiveItem(item.id);
+                  // Navegar a la ruta de perfil cuando se pulsa "perfil"
+                  if (item.id === "perfil") {
+                    navigate("/perfil");
+                  }
                   // Limpiar notificaciones si se hace clic en el ítem de mensajes
-                  if (item.id === 'mensajes') {
+                  if (item.id === "mensajes") {
                     setNotifications([]);
                   }
                 }}
@@ -187,16 +193,12 @@ export default function IndexLayout({ setTheme }: Props) {
       </div>
 
       {/* Área de contenido... (sin cambios) */}
-      <div className="flex-1 bg-base-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <Music2 size={40} className="text-primary" />
-          </div>
-          <p className="text-base-content/60 text-lg">
-            Contenido principal aquí
-          </p>
+      <div className="flex-1 bg-base-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Aquí se renderiza ExampleProfile u otras rutas hijas */}
+          <Outlet />
         </div>
       </div>
-    </div>
+      </div>
   );
 }
