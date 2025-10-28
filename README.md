@@ -128,15 +128,15 @@ Cada servicio expondrá un endpoint /health para chequeos automáticos por parte
 # Architectural Structures
 ## Components and Connectors (C&C) Structure
 C&C View:
-![C&C View](C&C.jpg)
+![C&C View](CyC.png)
 
 ## Description of architectural styles used.
 
-Microservicios: Servicios independientes con responsabilidades específicas
-MicroFrontends: 
-Layered Architecture: Separación clara entre presentación, lógica y datos
-Event-Driven: Para notificaciones y actualizaciones en tiempo real
-API Gateway Pattern: Para enrutar requests y manejar autenticación
+- Microservicios: Servicios independientes con responsabilidades específicas
+- MicroFrontends: Frontends independientes
+- Layered Architecture: Separación clara entre presentación, lógica y datos
+- Event-Driven: Para notificaciones y actualizaciones en tiempo real
+- API Gateway Pattern: Para enrutar requests y manejar autenticación
 
 ## Description of architectural elements and relations 
 ## Componentes:
@@ -211,78 +211,6 @@ Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo q
 Deployment View:
 ![Diagrama de despliegue](Diagrama_Despliegue.png)
 
----
-
-## ⚙️ Despliegue
-
-### Requisitos
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/)
-
-### Pasos
-```bash
-# Clonar repositorio
-git clone <repository-url>
-cd MusicShare
-
-# Levantar servicios
-docker compose build
-docker compose up -d
-
-# Verificar estado
-docker compose ps
-```
-
-Servicios levantados:
-- `formulario-post-front` → [http://localhost/formulario-post/index.html](http://localhost/formulario-post/index.html)
-- `userservice` → [http://localhost/api/users](http://localhost/api/users)
-- `musicservice` → [http://localhost/api/music](http://localhost/api/music)
-- `socialservice` → [http://localhost/api/social](http://localhost/api/social)
-- `postgres` → puerto 5432
-- `mongodb` → puerto 27017
-
----
-
-## 📖 Endpoints principales
-
-### UserService
-**Documentacion** [http://localhost/api/users/docs](http://localhost/api/users/docs)
-- **Health**: `GET /health`
-- **Registro**: `POST /auth/register`
-- **Login**: `POST /auth/token` (devuelve JWT)
-- **Perfil**: `GET /users/me` (requiere `Authorization: Bearer <token>`)
-- **Proxy playlists**: `GET /proxy/users/{id}/playlists`
-
-### MusicService
-**Documentacion** [http://localhost/api/music/swagger/index.html](http://localhost/api/music/swagger/index.html)
-- `POST /api/v1/tracks/upload` - Subir audio
-- `GET /api/v1/tracks` - Listar tracks
-- `GET /api/v1/tracks/{id}/stream` - Stream de audio
-- CRUD completo de playlists
-- Healthcheck en `/health`
-
-### SocialService
-**Documentacion** [http://localhost/api/social/swagger-ui/index.html](http://localhost/api/social/swagger-ui/index.html)
-
-#### Posts
-- `POST /api/social/posts` — Crear una publicación  
-- `GET /api/social/posts` — Obtener todas las publicaciones  
-- `GET /api/social/posts/usuario/{userId}` — Obtener publicaciones por usuario  
-- `DELETE /api/social/posts/{postId}` — Eliminar publicación  
-
-#### Comments
-- `POST /api/social/comments/post/{postId}` — Crear comentario en un post  
-- `POST /api/social/comments/reply/{commentId}` — Responder a un comentario  
-- `GET /api/social/comments/post/{postId}` — Listar comentarios de un post  
-- `GET /api/social/comments/replies/{parentCommentId}` — Listar respuestas de un comentario  
-- `DELETE /api/social/comments/{commentId}` — Eliminar comentario  
-
-#### Likes
-- `POST /api/social/likes` — Dar like a un post  
-- `GET /api/social/likes/post/{postId}` — Obtener todos los likes de un post  
-- `DELETE /api/social/likes/{likeId}` — Quitar un like
-
----
 ## Decomposition Structure
 ![Diagrama de descomposición de Dominio](Diagrama_de_descomposicion_D.jpg)
 ## Description 
@@ -379,7 +307,76 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Envío de notificaciones por correo, push o en la aplicación.
 
 Registro de eventos relevantes para los usuarios.
+
 ---
-## 📌 Notas
-- El **frontend React** está planificado pero aún no implementado.
-- Este prototipo cumple los requisitos de la materia: arquitectura distribuida, uso de 2 bases de datos, múltiples lenguajes (Go, Python), conectores HTTP, y despliegue en contenedores.
+
+## ⚙️ Despliegue
+
+### Requisitos
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+### Pasos
+```bash
+# Clonar repositorio
+git clone <repository-url>
+cd MusicShare
+
+# Levantar servicios
+docker compose build
+docker compose up -d
+
+# Verificar estado
+docker compose ps
+```
+
+Servicios levantados:
+- `formulario-post-front` → [http://localhost/formulario-post/index.html](http://localhost/formulario-post/index.html)
+- `userservice` → [http://localhost/api/users](http://localhost/api/users)
+- `musicservice` → [http://localhost/api/music](http://localhost/api/music)
+- `socialservice` → [http://localhost/api/social](http://localhost/api/social)
+- `postgres` → puerto 5432
+- `mongodb` → puerto 27017
+
+---
+
+## 📖 Endpoints principales
+
+### UserService
+**Documentacion** [http://localhost/api/users/docs](http://localhost/api/users/docs)
+- **Health**: `GET /health`
+- **Registro**: `POST /auth/register`
+- **Login**: `POST /auth/token` (devuelve JWT)
+- **Perfil**: `GET /users/me` (requiere `Authorization: Bearer <token>`)
+- **Proxy playlists**: `GET /proxy/users/{id}/playlists`
+
+### MusicService
+**Documentacion** [http://localhost/api/music/swagger/index.html](http://localhost/api/music/swagger/index.html)
+- `POST /api/v1/tracks/upload` - Subir audio
+- `GET /api/v1/tracks` - Listar tracks
+- `GET /api/v1/tracks/{id}/stream` - Stream de audio
+- CRUD completo de playlists
+- Healthcheck en `/health`
+
+### SocialService
+**Documentacion** [http://localhost/api/social/swagger-ui/index.html](http://localhost/api/social/swagger-ui/index.html)
+
+#### Posts
+- `POST /api/social/posts` — Crear una publicación  
+- `GET /api/social/posts` — Obtener todas las publicaciones  
+- `GET /api/social/posts/usuario/{userId}` — Obtener publicaciones por usuario  
+- `DELETE /api/social/posts/{postId}` — Eliminar publicación  
+
+#### Comments
+- `POST /api/social/comments/post/{postId}` — Crear comentario en un post  
+- `POST /api/social/comments/reply/{commentId}` — Responder a un comentario  
+- `GET /api/social/comments/post/{postId}` — Listar comentarios de un post  
+- `GET /api/social/comments/replies/{parentCommentId}` — Listar respuestas de un comentario  
+- `DELETE /api/social/comments/{commentId}` — Eliminar comentario  
+
+#### Likes
+- `POST /api/social/likes` — Dar like a un post  
+- `GET /api/social/likes/post/{postId}` — Obtener todos los likes de un post  
+- `DELETE /api/social/likes/{likeId}` — Quitar un like
+
+---
