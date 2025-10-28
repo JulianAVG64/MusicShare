@@ -25,7 +25,7 @@ export default function PasswordInput({ onChange }: Props) {
         <input
           type="password"
           required
-          placeholder="Contrasela"
+          placeholder="Contraseña"
           minLength={8}
           onChange={(e) => onChange(e.target.value)}
         />

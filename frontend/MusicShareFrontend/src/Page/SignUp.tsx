@@ -13,9 +13,7 @@ export default function SignUp({ theme }: Props) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [user, setUser] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
@@ -26,16 +24,8 @@ export default function SignUp({ theme }: Props) {
     e.preventDefault();
     setIsLoading(true);
 
-    const payload = {
-      email,
-      password,
-      username: name,
-      first_name: firstName,
-      last_name: lastName,
-    };
-
     try {
-      const res = await fetch("api/users/auth/register", {
+      const res = await fetch("http://localhost/api/users/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -43,7 +33,7 @@ export default function SignUp({ theme }: Props) {
         body: new URLSearchParams({
           email: email,       
           password: password,
-          username: name,
+          username: user,
         }),
       });
 
@@ -53,7 +43,6 @@ export default function SignUp({ theme }: Props) {
         setToast({ message: "Cuenta creada exitosamente", type: "success" });
         setTimeout(() => navigate("/login"), 1500);
       } else {
-        // Manejar errores de validación de FastAPI
         let errorMessage = "Error al crear la cuenta";
         
         if (data.detail) {
@@ -61,7 +50,6 @@ export default function SignUp({ theme }: Props) {
           if (typeof data.detail === "string") {
             errorMessage = data.detail;
           } else if (Array.isArray(data.detail)) {
-            // Manejar distintos formatos de error (msg / message)
             errorMessage = data.detail
               .map((err: any) => err.msg || err.message || JSON.stringify(err))
               .join(", ");
@@ -98,22 +86,10 @@ export default function SignUp({ theme }: Props) {
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               <TextInput
-                placeholder="Nombre de usuario"
-                value={name}
-                onChange={setName}
+                placeholder="Usuario"
+                value={user}
+                onChange={setUser}
               />
-              <div className="flex gap-2">
-                <TextInput
-                  placeholder="Nombre"
-                  value={firstName}
-                  onChange={setFirstName}
-                />
-                <TextInput
-                  placeholder="Apellido"
-                  value={lastName}
-                  onChange={setLastName}
-                />
-              </div>
 
               <MailInput onChange={setEmail} />
               <PasswordInput onChange={setPassword} />

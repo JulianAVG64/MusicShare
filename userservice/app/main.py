@@ -5,7 +5,10 @@ from .routers import auth_router, users_router
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
 
-app = FastAPI(title="Users Service - MusicShare")
+app = FastAPI(title="Users Service - MusicShare",
+              version="1.0.0", 
+              description="Service for user management in MusicShare application.",
+              root_path="/api/users")
 
 origins = [
     "http://localhost:3000",  # frontend
