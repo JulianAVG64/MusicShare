@@ -278,6 +278,26 @@ services:
       start_period: 10s
 
   # ===============================
+  # 🌐 MicroFrontend (Post)
+  # ===============================
+  formulario-post-front:
+    build:
+      context: ./formulario-post-front
+      dockerfile: Dockerfile
+    container_name: musicshare-formulario-post-front
+    restart: unless-stopped
+    networks:
+      - musicshare-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.formulario-post-front.rule=PathPrefix(`/formulario-post`)"
+      - "traefik.http.middlewares.formulario-post-front-stripprefix.stripprefix.prefixes=/formulario-post"
+      - "traefik.http.routers.formulario-post-front.middlewares=formulario-post-front-stripprefix"
+      - "traefik.http.services.formulario-post-front.loadbalancer.server.port=80"
+
+
+
+  # ===============================
   # 🐇 RabbitMQ + Notification Service
   # ===============================
   rabbitmq:
