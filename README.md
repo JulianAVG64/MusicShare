@@ -284,7 +284,7 @@ Servicios levantados:
 
 ---
 ## Decomposition Structure
-![Diagrama de descomposición de Dominio](Diagrama de descomposición D.JPG)
+![Diagrama de descomposición de Dominio](Diagrama de descomposición D.jpg)
 ## Description 
 🎵 Estructura de Descomposición de Dominio — MusicShare
 Dominio Raíz: MusicShare
