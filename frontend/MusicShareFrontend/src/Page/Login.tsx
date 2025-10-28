@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import MailInput from "../components/Inputs/MailInput";
 import PasswordInput from "../components/Inputs/PasswordInput";
 import Toast from "../components/Toast";
-import { apiFetch } from "../lib/api"; // 👈 importa tu api.tsx
-import { setToken } from "../lib/auth"; // 👈 importa el helper de auth
 
 type Props = {
   theme: "cupcake" | "dark";
@@ -25,7 +23,7 @@ export default function Login({ theme }: Props) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("api/users/auth/token", {
+      const res = await fetch("http://localhost/api/users/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -33,16 +31,12 @@ export default function Login({ theme }: Props) {
           password: password,
         }),
       });
-
-      
       const data = await res.json();
 
-    if (res.ok && data.access_token) {
-      console.log("✅ Login exitoso:", data);
-      console.log("✅ Login exitoso:", data.access_token);
-      setToken(data.access_token); // 👈 guarda token usando auth.tsx
+    if (data.access_token) {
       setToast({ message: "Inicio de sesión exitoso", type: "success" });
-      navigate("/"); // redirige al home
+      localStorage.setItem("access_token", data.access_token);
+      navigate("/"); 
     } else {
       console.error("Error en el login:", data);
       setToast({

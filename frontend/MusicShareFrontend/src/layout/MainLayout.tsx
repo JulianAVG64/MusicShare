@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import LoadingBar from "../components/LoadingBar";
 
-type Props = {
-  setTheme: (theme: "cupcake" | "dark") => void;
-};
-
-export default function MainLayout({ setTheme }: Props) {
+export default function MainLayout() {
   const [loading, setLoading] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -14,7 +10,7 @@ export default function MainLayout({ setTheme }: Props) {
 
   useEffect(() => {
     async function verifyToken() {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
 
       if (!token) {
         setTokenValid(false);
@@ -23,7 +19,8 @@ export default function MainLayout({ setTheme }: Props) {
       }
 
       try {
-        const res = await fetch("api/users/users/me", {
+        const res = await fetch("http://localhost/api/users/users/me", {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -46,6 +43,7 @@ export default function MainLayout({ setTheme }: Props) {
 
     verifyToken();
   }, []);
+
   useEffect(() => {
     if (!loading && !tokenValid) {
       navigate("/login");
