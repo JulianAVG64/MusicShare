@@ -248,7 +248,7 @@ services:
       - musicshare-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`)"
+      - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`) || PathPrefix(`/swagger-ui`) || PathPrefix(`/v3/api-docs`)"
       - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
       - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
       - "traefik.http.services.social-service.loadbalancer.server.port=8083"
