@@ -134,6 +134,7 @@ C&C View:
 ## Description of architectural styles used.
 
 Microservicios: Servicios independientes con responsabilidades específicas
+MicroFrontends: 
 Layered Architecture: Separación clara entre presentación, lógica y datos
 Event-Driven: Para notificaciones y actualizaciones en tiempo real
 API Gateway Pattern: Para enrutar requests y manejar autenticación
@@ -142,6 +143,7 @@ API Gateway Pattern: Para enrutar requests y manejar autenticación
 ## Componentes:
 ### Presentación:
 - Web Frontend (React/TypeScript): Interfaz de usuario principal
+- Posts Frontend (JavaScript): Interfaz para la creacion de posts
 ### Lógica de Negocio:
 - User Service (Python/FastAPI): Gestión de usuarios, autenticación, perfiles
 - Music Service (Go): Manejo de archivos musicales, metadata, cloud storage
@@ -206,79 +208,9 @@ proporciona soporte de ejecución y despliegue mediante Docker, Kubernetes, pipe
 
 Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo que asegura modularidad y evita dependencias circulares. Esta organización favorece el mantenimiento, permite reemplazar tecnologías en capas inferiores y facilita la escalabilidad independiente de los servicios.
 
----
-
-## 🎯 Objetivo del prototipo
-
-Construir un prototipo **vertical** de la arquitectura distribuida de MusicShare, con:
-- Microservicios backend (Go, Python)
-- Bases de datos: relacional (**Postgres**) y documental (**MongoDB**)
-- Conectores HTTP entre servicios
-- Despliegue completo con Docker Compose
-- Frontend (planificado para siguiente iteración)
-
----
-
-## 🏗️ Arquitectura del Sistema
-
-### Componentes Implementados
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    MUSIC SHARE                          │
-│                                                         │
-│   ┌───────────────┐        ┌───────────────┐            │
-│   │ Music Service │◄──────►│  MongoDB      │            │
-│   │     (Go)      │        │  Database     │            │
-│   └───────────────┘        └───────────────┘            │
-│                                                         │
-│   ┌───────────────┐        ┌────────────────┐           │
-│   │ User Service  │◄──────►│  Postgres      │           │
-│   │ (FastAPI/Py)  │        │  Relational DB │           │
-│   └───────────────┘        └────────────────┘           │
-│                                                         │
-│                 (conectados vía Docker network)         │
-└─────────────────────────────────────────────────────────┘
-```
-
-- **MusicService (Go)**: subida y streaming de música, gestión de playlists, metadatos.
-- **UserService (Python + FastAPI)**: registro/login JWT, gestión de usuarios, proxy hacia MusicService.
-- **Postgres**: almacenamiento relacional de usuarios.
-- **MongoDB**: almacenamiento documental de tracks y playlists.
-- **Otros servicios (stub)**: Metadata, Notifications, Search.
-
----
-
-## ✅ Estado Actual del Proyecto
-
-### Music Service (Go)
-- Upload de archivos de audio (MP3, FLAC, WAV, etc.)
-- Extracción de metadatos ID3
-- CRUD completo de playlists
-- Streaming de audio
-- API REST documentada
-
-### User Service (FastAPI + Postgres)
-- Registro de usuarios con hash de contraseña
-- Login con JWT (OAuth2)
-- Endpoint `/users/me` protegido
-- Proxy hacia MusicService (`/proxy/users/{id}/playlists`)
-
-### Bases de Datos
-- **MongoDB**: tracks, metadatos y playlists
-- **Postgres**: usuarios y credenciales
-
-### Infraestructura
-- `docker-compose.yml` con Postgres, MongoDB, MusicService y UserService
-- Networking entre contenedores
-- Volúmenes persistentes
-- Health checks básicos
-
-### 💬 Social Service (Spring Boot + Postgres)
-- Gestión de publicaciones (**posts**) asociadas a usuarios, playlists o canciones
-- Sistema de comentarios jerárquicos (**respuestas a comentarios**)
-- Sistema de **likes** con control de duplicados por usuario
-- Documentación interactiva con **Swagger/OpenAPI**
+## Deployment Structure
+Deployment View:
+![Diagrama de despliegue](Diagrama_Despliegue.png)
 
 ---
 
@@ -303,9 +235,9 @@ docker compose ps
 ```
 
 Servicios levantados:
-- `userservice` → [http://localhost:8001](http://localhost:8001)
-- `musicservice` → [http://localhost:8080](http://localhost:8080)
-- `socialservice` → 
+- `userservice` → [http://localhost/api/users](http://localhost/api/users)
+- `musicservice` → [http://localhost/api/music](http://localhost/api/music)
+- `socialservice` → [http://localhost/api/social](http://localhost/api/social)
 - `postgres` → puerto 5432
 - `mongodb` → puerto 27017
 
