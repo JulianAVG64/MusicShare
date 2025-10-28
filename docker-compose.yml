@@ -244,10 +244,14 @@ services:
       SPRING_DATASOURCE_USERNAME: music_user
       SPRING_DATASOURCE_PASSWORD: music_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-    ports:
-      - "8083:8083"
     networks:
       - musicshare-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`)"
+      - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
+      - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
+      - "traefik.http.services.social-service.loadbalancer.server.port=8083"
 
 
   # ===============================
