@@ -283,7 +283,103 @@ Servicios levantados:
 - `DELETE /api/social/likes/{likeId}` — Quitar un like
 
 ---
+## Decomposition Structure
+![Diagrama de descomposición de Dominio](Diagrama de descomposición D.JPG)
+## Description 
+🎵 Estructura de Descomposición de Dominio — MusicShare
+Dominio Raíz: MusicShare
 
+Descripción general:
+MusicShare es una plataforma colaborativa para compartir, reproducir y descubrir música. El sistema está diseñado bajo una arquitectura basada en microservicios, donde cada dominio encapsula una funcionalidad específica, comunicándose entre sí mediante un API Gateway.
+Su estructura promueve la escalabilidad, la independencia de desarrollo y el despliegue modular de componentes.
+
+### 1. web_frontend
+
+- **Responsabilidad principal**:
+  - Proporcionar la interfaz gráfica principal para los usuarios finales.
+  - Es la capa de presentación encargada de gestionar la interacción del usuario con las funcionalidades de la plataforma.
+
+- **Funciones clave:**
+  - Registro e inicio de sesión de usuarios.
+  - Exploración de canciones, playlists y perfiles.
+  - Comunicación directa con el API Gateway para consumir servicios REST.
+  - Implementación adaptable para navegadores web.
+
+### 2. post_frontend
+
+- **Responsabilidad principal**:
+  - Gestionar la interfaz y funcionalidad relacionada con la publicación y visualización de contenido social (por ejemplo, publicaciones, comentarios o interacciones).
+- **Funciones clave:**
+  - Creación de publicaciones relacionadas con canciones o playlists.
+  - Interacción entre usuarios mediante comentarios o reacciones.
+  - Integración directa con el SocialService.
+
+### 3. SocialService
+
+- **Responsabilidad principal:**
+  - Encargado del componente social de la plataforma. Administra las interacciones, conexiones y actividades entre los usuarios.
+
+- **Funciones clave:**
+  - Manejo de publicaciones, comentarios y likes.
+  - Seguimiento de usuarios (“followers/following”).
+  - Integración con el NotificationService para alertas sociales.
+  - Conexión con UserService para obtener perfiles.
+
+4. MusicService
+
+- **Responsabilidad principal:**
+  - Administrar los recursos musicales y su ciclo de vida dentro del sistema.
+
+**- Funciones clave:**
+  - Almacenamiento y gestión de canciones y álbumes.
+  - Control de derechos, autoría y acceso.
+  - Integración con el MetadataService para obtener información descriptiva.
+  - Exposición de endpoints para streaming o descarga.
+
+### 5. APIGateway
+- **Responsabilidad principal:**
+  - Centralizar y gestionar todas las solicitudes externas hacia los microservicios.
+  - Actúa como punto único de entrada al ecosistema MusicShare.
+
+-**Funciones clave**:
+  - Enrutamiento y balanceo de peticiones.
+  - Seguridad, autenticación y autorización.
+  - Control de tráfico, logging y CORS.
+  - Comunicación entre frontends y los servicios internos.
+
+### 6. MetadataService
+
+- **Responsabilidad principal:**
+  - Gestionar y proveer información descriptiva asociada al contenido musical.
+
+- **Funciones clave:**
+  - Procesamiento y almacenamiento de metadatos de audio (artista, álbum, duración, género, etc.).
+  - Indexación de canciones para búsqueda y filtrado.
+  - Soporte a MusicService y RecommendationService (si existiera).
+  - Posible integración con APIs externas para completar metadatos.
+
+### 7. UserService
+- **Responsabilidad principal:**
+  - Gestionar la información y autenticación de los usuarios del sistema.
+
+- **Funciones clave:**
+  - Registro, login y recuperación de contraseñas.
+  - Administración de roles y permisos.
+  - Exposición de información de perfil para otros servicios (SocialService, NotificationService).
+  - Almacenamiento seguro de credenciales (posiblemente con JWT o OAuth2).
+
+### 8. NotificationService
+
+- **Responsabilidad principal:**
+  - Coordinar y enviar notificaciones a los usuarios según eventos del sistema.
+
+- **Funciones clave:**
+  - Notificaciones por nuevas publicaciones, seguidores o reacciones.
+  - Integración con SocialService y UserService.
+  - Envío de notificaciones por correo, push o en la aplicación.
+
+Registro de eventos relevantes para los usuarios.
+---
 ## 📌 Notas
 - El **frontend React** está planificado pero aún no implementado.
 - Este prototipo cumple los requisitos de la materia: arquitectura distribuida, uso de 2 bases de datos, múltiples lenguajes (Go, Python), conectores HTTP, y despliegue en contenedores.
