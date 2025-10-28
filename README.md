@@ -9,7 +9,6 @@
   - Gabriel Felipe González Bohórquez
   - Andrés Felipe Perdomo Uruburu
   - Andrés Felipe Poveda Bellón
-  - Iván David Molina Leguízamo
 
 ## Sofware System
  - **Name:** MusicShare
@@ -235,6 +234,7 @@ docker compose ps
 ```
 
 Servicios levantados:
+- `formulario-post-front` → [http://localhost/formulario-post/index.html](http://localhost/formulario-post/index.html)
 - `userservice` → [http://localhost/api/users](http://localhost/api/users)
 - `musicservice` → [http://localhost/api/music](http://localhost/api/music)
 - `socialservice` → [http://localhost/api/social](http://localhost/api/social)
@@ -246,6 +246,7 @@ Servicios levantados:
 ## 📖 Endpoints principales
 
 ### UserService
+**Documentacion** [http://localhost/api/users/docs](http://localhost/api/users/docs)
 - **Health**: `GET /health`
 - **Registro**: `POST /auth/register`
 - **Login**: `POST /auth/token` (devuelve JWT)
@@ -253,6 +254,7 @@ Servicios levantados:
 - **Proxy playlists**: `GET /proxy/users/{id}/playlists`
 
 ### MusicService
+**Documentacion** [http://localhost/api/music/swagger/index.html](http://localhost/api/music/swagger/index.html)
 - `POST /api/v1/tracks/upload` - Subir audio
 - `GET /api/v1/tracks` - Listar tracks
 - `GET /api/v1/tracks/{id}/stream` - Stream de audio
@@ -260,7 +262,7 @@ Servicios levantados:
 - Healthcheck en `/health`
 
 ### SocialService
-**Base URL (tras Traefik):** `/api/social`
+**Documentacion** [http://localhost/api/social/swagger-ui/index.html](http://localhost/api/social/swagger-ui/index.html)
 
 #### Posts
 - `POST /api/social/posts` — Crear una publicación  
