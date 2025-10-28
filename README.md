@@ -166,6 +166,47 @@ API Gateway Pattern: Para enrutar requests y manejar autenticación
 ### gRPC:
   - Conexión MusicService con MetadataService
 
+## Layered Structure
+Layered View:
+![Diagrama de capas](Diagrama_Capas.png)
+
+## Descripción de los Patrones Arquitectónicos Utilizados
+
+La arquitectura del sistema sigue el Patrón Arquitectónico en Capas (Layered Architectural Pattern), el cual organiza el software en niveles jerárquicos con responsabilidades bien definidas y relaciones unidireccionales tipo “allowed-to-use”. Cada capa superior depende únicamente de los servicios ofrecidos por la capa inmediatamente inferior, promoviendo así la modificabilidad, la escalabilidad y la separación de responsabilidades.
+
+Asimismo, se aplica el Patrón de Microservicios dentro de la Capa de Negocio, donde cada servicio (User, Music, Social, Notification y Metadata) encapsula un dominio funcional específico y se comunica mediante APIs REST o protocolos asíncronos. Este enfoque permite el despliegue independiente, el aislamiento de fallos y una alta mantenibilidad.
+
+Además, en la capa de presentación se aplica el Patrón de Micro Frontends, dividiendo la interfaz de usuario en dos aplicaciones independientes (Web Frontend y Posts Frontend). Cada una se despliega de manera autónoma y consume los servicios del API Gateway. Este enfoque facilita la escalabilidad del frontend, el desarrollo paralelo por equipos distintos y la actualización independiente de módulos de interfaz sin afectar al resto del sistema.
+
+Entre los patrones complementarios utilizados se encuentran:
+
+Patrón API Gateway: centraliza el acceso externo, el enrutamiento y la autenticación hacia los servicios del backend.
+
+Patrón Base de Datos por Servicio (Database per Service): cada microservicio gestiona su propia base de datos, garantizando independencia de datos.
+
+## Descripción de los Elementos Arquitectónicos y sus Relaciones
+
+La arquitectura está compuesta por cinco capas lógicas:
+
+### Capa de Presentación: 
+
+incluye los componentes orientados al usuario como Web Frontend y Posts Frontend. Estos módulos gestionan la interacción con el usuario, la visualización de datos y las peticiones al sistema. Se comunican exclusivamente con la Capa de Integración mediante HTTP/REST.
+
+### Capa de Integración: 
+implementa el API Gateway, responsable del enrutamiento, balanceo de carga, autenticación y control de tráfico. Actúa como una fachada que expone un punto de acceso unificado al frontend y delega las solicitudes hacia los microservicios correspondientes.
+
+### Capa de Negocio (Business): 
+compuesta por microservicios independientes (User Service, Music Service, Social Service, Notification Service y Metadata Service). Cada uno encapsula reglas de negocio específicas.
+
+### Capa de Persistencia: 
+agrupa los componentes de almacenamiento de datos, como User Database (PostgreSQL), Music/Metadata Database (MongoDB), Social Database (PostgreSQL) y Cloud Storage para archivos multimedia. Cada microservicio accede exclusivamente a su propia fuente de datos.
+
+### Capa de Infraestructura: 
+proporciona soporte de ejecución y despliegue mediante Docker, Kubernetes, pipelines de CI/CD, monitoreo (Prometheus/Grafana) y gestión de logs (ELK). Esta capa sustenta a todas las demás sin generar dependencias ascendentes.
+
+Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo que asegura modularidad y evita dependencias circulares. Esta organización favorece el mantenimiento, permite reemplazar tecnologías en capas inferiores y facilita la escalabilidad independiente de los servicios.
+
+---
 
 ## 🎯 Objetivo del prototipo
 
@@ -233,6 +274,12 @@ Construir un prototipo **vertical** de la arquitectura distribuida de MusicShare
 - Volúmenes persistentes
 - Health checks básicos
 
+### 💬 Social Service (Spring Boot + Postgres)
+- Gestión de publicaciones (**posts**) asociadas a usuarios, playlists o canciones
+- Sistema de comentarios jerárquicos (**respuestas a comentarios**)
+- Sistema de **likes** con control de duplicados por usuario
+- Documentación interactiva con **Swagger/OpenAPI**
+
 ---
 
 ## ⚙️ Despliegue
@@ -258,6 +305,7 @@ docker compose ps
 Servicios levantados:
 - `userservice` → [http://localhost:8001](http://localhost:8001)
 - `musicservice` → [http://localhost:8080](http://localhost:8080)
+- `socialservice` → 
 - `postgres` → puerto 5432
 - `mongodb` → puerto 27017
 
@@ -278,6 +326,27 @@ Servicios levantados:
 - `GET /api/v1/tracks/{id}/stream` - Stream de audio
 - CRUD completo de playlists
 - Healthcheck en `/health`
+
+### SocialService
+**Base URL (tras Traefik):** `/api/social`
+
+#### Posts
+- `POST /api/social/posts` — Crear una publicación  
+- `GET /api/social/posts` — Obtener todas las publicaciones  
+- `GET /api/social/posts/usuario/{userId}` — Obtener publicaciones por usuario  
+- `DELETE /api/social/posts/{postId}` — Eliminar publicación  
+
+#### Comments
+- `POST /api/social/comments/post/{postId}` — Crear comentario en un post  
+- `POST /api/social/comments/reply/{commentId}` — Responder a un comentario  
+- `GET /api/social/comments/post/{postId}` — Listar comentarios de un post  
+- `GET /api/social/comments/replies/{parentCommentId}` — Listar respuestas de un comentario  
+- `DELETE /api/social/comments/{commentId}` — Eliminar comentario  
+
+#### Likes
+- `POST /api/social/likes` — Dar like a un post  
+- `GET /api/social/likes/post/{postId}` — Obtener todos los likes de un post  
+- `DELETE /api/social/likes/{likeId}` — Quitar un like
 
 ---
 
