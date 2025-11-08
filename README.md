@@ -458,3 +458,150 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 - `DELETE /api/social/likes/{likeId}` — Quitar un like
 
 ---
+
+## 🧩 Network Segmentation Pattern
+
+### 🎯 Objetivo
+
+Implementar **segmentación de red** entre los distintos componentes de MusicShare para aislar las capas de la aplicación (presentación, negocio y datos) y limitar el alcance de la comunicación entre contenedores.
+
+Este patrón mejora la seguridad y la mantenibilidad al aplicar el **principio de mínimo privilegio** en la red de Docker.
+
+---
+
+### ⚙️ Implementación
+
+1. **Creación de redes separadas** en el archivo `docker-compose.yml`:
+
+   ```yaml
+   networks:
+     frontend_net:
+       driver: bridge
+     backend_net:
+       driver: bridge
+     data_net:
+       driver: bridge
+   ```
+
+2. **Asignación de redes a los servicios** según su capa:
+
+   | Capa         | Redes          | Servicios incluidos                                                                                    |
+   | ------------ | -------------- | ------------------------------------------------------------------------------------------------------ |
+   | Presentación | `frontend_net` | `frontend`, `formulario-post-front`, `traefik`                                                         |
+   | Negocio      | `backend_net`  | `userservice`, `music-service`, `social-service`, `metadata-service`, `notificationservice`, `traefik` |
+   | Datos        | `data_net`     | `postgres`, `postgres-social`, `mongodb`, `rabbitmq`                                                   |
+
+3. **Puentes de conexión controlados**:
+
+   * `traefik` conecta `frontend_net` ↔ `backend_net`.
+   * Cada microservicio que requiere acceso a una base de datos también pertenece a `data_net`.
+
+   Ejemplo:
+
+   ```yaml
+   userservice:
+     networks:
+       - backend_net
+       - data_net
+   ```
+
+4. **Aislamiento verificado**:
+
+   * Los frontends **no tienen acceso** directo a las bases de datos ni a los microservicios.
+   * Los microservicios solo pueden ver los recursos que realmente necesitan.
+   * El API Gateway (`traefik`) es el **único punto de interconexión** entre capas.
+
+---
+
+### 🧪 Pruebas de verificación
+
+1. **Levantar la infraestructura:**
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Listar redes creadas:**
+
+   ```bash
+   docker network ls
+   ```
+
+   Deben aparecer:
+
+   ```
+   frontend_net
+   backend_net
+   data_net
+   ```
+
+3. **Ver los contenedores conectados a cada red:**
+
+   ```bash
+   docker network inspect frontend_net
+   docker network inspect backend_net
+   docker network inspect data_net
+   ```
+
+4. **Probar conectividad con `ping` o `curl`:**
+
+   Instalar herramientas en el contenedor (solo para pruebas):
+
+   ```bash
+   docker exec -it musicshare-frontend sh
+   apk add --no-cache iputils
+   ```
+
+   * Desde el `frontend`:
+
+     ```bash
+     ping formulario-post-front       # ✅ debería responder
+     ping postgres                    # ❌ debería fallar
+     ping userservice                 # ❌ debería fallar
+     ```
+
+   * Desde `userservice`:
+
+     ```bash
+     ping postgres                    # ✅ debería responder
+     ping frontend                    # ❌ debería fallar
+     ```
+
+   * Desde `traefik`:
+
+     ```bash
+     ping frontend                    # ✅
+     ping userservice                 # ✅
+     ```
+
+   Estos resultados confirman el **aislamiento por capas**.
+
+---
+
+### ✅ Resultado
+
+La red de MusicShare queda estructurada de la siguiente forma:
+
+```
+[ Frontend, Formulario Front ]
+           │
+     (frontend_net)
+           │
+        [ Traefik ]
+           │
+     (backend_net)
+           │
+ [ User, Music, Social, Metadata, Notification Services ]
+           │
+     (data_net)
+           │
+ [ Postgres, MongoDB, RabbitMQ ]
+```
+
+Con esta segmentación:
+
+* Los frontends no acceden directamente a los backends ni a las bases de datos.
+* El gateway controla todo el flujo de red.
+* Se reduce la superficie de ataque y se refuerza el aislamiento de servicios.
+
+---

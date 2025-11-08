@@ -19,7 +19,8 @@ services:
       # Mantenemos el socket de Docker
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - musicshare-network
+      - frontend_net
+      - backend_net
 
   # ===============================
   # 🗄️ Postgres Database
@@ -41,7 +42,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare-network
+      - data_net
 
   # ===============================
   # 🗄️ Postgres Database (Social Service)
@@ -63,7 +64,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare-network
+      - data_net
 
   # ===============================
   # 🍃 MongoDB Database
@@ -82,7 +83,7 @@ services:
       - mongodb_data:/data/db
       - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
-      - musicshare-network
+      - data_net
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -137,7 +138,7 @@ services:
       MAX_RETRIES: 3
       RETRY_DELAY: 1.0
     networks:
-      - musicshare-network
+      - backend_net
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.settimeout(2); r=s.connect_ex((\"localhost\",50051)); s.close(); exit(0 if r==0 else 1)'"]
       interval: 10s
@@ -178,7 +179,8 @@ services:
       metadata-service:
         condition: service_healthy
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.music-service.rule=PathPrefix(`/api/music`)"
@@ -219,7 +221,8 @@ services:
     #volumes:
     #  - ./userservice/app:/app/app:ro
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.userservice.rule=PathPrefix(`/api/users`)"
@@ -245,7 +248,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: music_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`) || PathPrefix(`/swagger-ui`) || PathPrefix(`/v3/api-docs`)"
@@ -274,7 +278,7 @@ services:
       - userservice
       - music-service
     networks:
-      - musicshare-network
+      - frontend_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -292,7 +296,7 @@ services:
     container_name: musicshare-formulario-post-front
     restart: unless-stopped
     networks:
-      - musicshare-network
+      - frontend_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.formulario-post-front.rule=PathPrefix(`/formulario-post`)"
@@ -312,7 +316,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - musicshare-network
+      - data_net
 
   notificationservice:
     build:
@@ -325,7 +329,8 @@ services:
       AMQP_URL: "amqp://guest:guest@rabbitmq/"
       QUEUE_NAME: "notifications"
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       # Router para la API REST
@@ -337,12 +342,15 @@ services:
       - "traefik.http.routers.notificationservice-ws.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.notificationservice-ws.service=notificationservice" # Reutiliza el servicio definido arriba
 
-
 # ===============================
 # 🧭 Network & Volumes
 # ===============================
 networks:
-  musicshare-network:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+  data_net:
     driver: bridge
 
 volumes:
