@@ -25,7 +25,7 @@ export default function SignUp({ theme }: Props) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost/api/users/auth/register", {
+      const res = await fetch("https://localhost/api/users/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

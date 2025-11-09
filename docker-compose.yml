@@ -12,14 +12,19 @@ services:
     # Ya no usamos 'command', la configuración está en los archivos
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
     volumes:
       # Mapeamos el archivo de configuración que acabamos de crear
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # Certificados
+      - ./traefik/certs:/certs:ro
       # Mantenemos el socket de Docker
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - musicshare-network
+      - frontend_net
+      - backend_net
+      - data_net
 
   # ===============================
   # 🗄️ Postgres Database
@@ -41,7 +46,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare-network
+      - data_net
 
   # ===============================
   # 🗄️ Postgres Database (Social Service)
@@ -63,7 +68,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musicshare-network
+      - data_net
 
   # ===============================
   # 🍃 MongoDB Database
@@ -82,7 +87,7 @@ services:
       - mongodb_data:/data/db
       - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
-      - musicshare-network
+      - data_net
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -137,7 +142,7 @@ services:
       MAX_RETRIES: 3
       RETRY_DELAY: 1.0
     networks:
-      - musicshare-network
+      - backend_net
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.settimeout(2); r=s.connect_ex((\"localhost\",50051)); s.close(); exit(0 if r==0 else 1)'"]
       interval: 10s
@@ -178,13 +183,16 @@ services:
       metadata-service:
         condition: service_healthy
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.music-service.rule=PathPrefix(`/api/music`)"
       - "traefik.http.middlewares.music-service-stripprefix.stripprefix.prefixes=/api/music"
       - "traefik.http.routers.music-service.middlewares=music-service-stripprefix"
       - "traefik.http.services.music-service.loadbalancer.server.port=8081"
+      - "traefik.http.routers.music-service.entrypoints=websecure"
+      - "traefik.http.routers.music-service.tls=true"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
       interval: 30s
@@ -219,13 +227,16 @@ services:
     #volumes:
     #  - ./userservice/app:/app/app:ro
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.userservice.rule=PathPrefix(`/api/users`)"
       - "traefik.http.middlewares.userservice-stripprefix.stripprefix.prefixes=/api/users"
       - "traefik.http.routers.userservice.middlewares=userservice-stripprefix"
       - "traefik.http.services.userservice.loadbalancer.server.port=8002"
+      - "traefik.http.routers.userservice.entrypoints=websecure"
+      - "traefik.http.routers.userservice.tls=true"
 
   # ===============================
   # 💬 Social Service
@@ -245,13 +256,16 @@ services:
       SPRING_DATASOURCE_PASSWORD: music_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`) || PathPrefix(`/swagger-ui`) || PathPrefix(`/v3/api-docs`)"
       - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
       - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
       - "traefik.http.services.social-service.loadbalancer.server.port=8083"
+      - "traefik.http.routers.social-service.entrypoints=websecure"
+      - "traefik.http.routers.social-service.tls=true"
 
 
   # ===============================
@@ -270,11 +284,13 @@ services:
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
       - "traefik.http.routers.frontend.priority=1"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
     depends_on:
       - userservice
       - music-service
     networks:
-      - musicshare-network
+      - frontend_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -292,13 +308,15 @@ services:
     container_name: musicshare-formulario-post-front
     restart: unless-stopped
     networks:
-      - musicshare-network
+      - frontend_net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.formulario-post-front.rule=PathPrefix(`/formulario-post`)"
       - "traefik.http.middlewares.formulario-post-front-stripprefix.stripprefix.prefixes=/formulario-post"
       - "traefik.http.routers.formulario-post-front.middlewares=formulario-post-front-stripprefix"
       - "traefik.http.services.formulario-post-front.loadbalancer.server.port=80"
+      - "traefik.http.routers.formulario-post-front.entrypoints=websecure"
+      - "traefik.http.routers.formulario-post-front.tls=true"
 
 
 
@@ -312,7 +330,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - musicshare-network
+      - data_net
 
   notificationservice:
     build:
@@ -325,7 +343,8 @@ services:
       AMQP_URL: "amqp://guest:guest@rabbitmq/"
       QUEUE_NAME: "notifications"
     networks:
-      - musicshare-network
+      - backend_net
+      - data_net
     labels:
       - "traefik.enable=true"
       # Router para la API REST
@@ -333,16 +352,23 @@ services:
       - "traefik.http.middlewares.notificationservice-stripprefix.stripprefix.prefixes=/api/notifications"
       - "traefik.http.routers.notificationservice-rest.middlewares=notificationservice-stripprefix"
       - "traefik.http.services.notificationservice.loadbalancer.server.port=8082"
+      - "traefik.http.routers.notificationservice-rest.entrypoints=websecure"
+      - "traefik.http.routers.notificationservice-rest.tls=true"
       # Router para WebSockets
       - "traefik.http.routers.notificationservice-ws.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.notificationservice-ws.service=notificationservice" # Reutiliza el servicio definido arriba
-
+      - "traefik.http.routers.notificationservice-ws.entrypoints=websecure"
+      - "traefik.http.routers.notificationservice-ws.tls=true"
 
 # ===============================
 # 🧭 Network & Volumes
 # ===============================
 networks:
-  musicshare-network:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+  data_net:
     driver: bridge
 
 volumes:

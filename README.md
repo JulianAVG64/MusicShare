@@ -458,3 +458,332 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 - `DELETE /api/social/likes/{likeId}` — Quitar un like
 
 ---
+
+## 🧩 Network Segmentation Pattern
+
+### 🎯 Objetivo
+
+Implementar **segmentación de red** entre los distintos componentes de MusicShare para aislar las capas de la aplicación (presentación, negocio y datos) y limitar el alcance de la comunicación entre contenedores.
+
+Este patrón mejora la seguridad y la mantenibilidad al aplicar el **principio de mínimo privilegio** en la red de Docker.
+
+---
+
+### ⚙️ Implementación
+
+1. **Creación de redes separadas** en el archivo `docker-compose.yml`:
+
+   ```yaml
+   networks:
+     frontend_net:
+       driver: bridge
+     backend_net:
+       driver: bridge
+     data_net:
+       driver: bridge
+   ```
+
+2. **Asignación de redes a los servicios** según su capa:
+
+   | Capa         | Redes          | Servicios incluidos                                                                                    |
+   | ------------ | -------------- | ------------------------------------------------------------------------------------------------------ |
+   | Presentación | `frontend_net` | `frontend`, `formulario-post-front`, `traefik`                                                         |
+   | Negocio      | `backend_net`  | `userservice`, `music-service`, `social-service`, `metadata-service`, `notificationservice`, `traefik` |
+   | Datos        | `data_net`     | `postgres`, `postgres-social`, `mongodb`, `rabbitmq`                                                   |
+
+3. **Puentes de conexión controlados**:
+
+   * `traefik` conecta `frontend_net` ↔ `backend_net`.
+   * Cada microservicio que requiere acceso a una base de datos también pertenece a `data_net`.
+
+   Ejemplo:
+
+   ```yaml
+   userservice:
+     networks:
+       - backend_net
+       - data_net
+   ```
+
+4. **Aislamiento verificado**:
+
+   * Los frontends **no tienen acceso** directo a las bases de datos ni a los microservicios.
+   * Los microservicios solo pueden ver los recursos que realmente necesitan.
+   * El API Gateway (`traefik`) es el **único punto de interconexión** entre capas.
+
+---
+
+### 🧪 Pruebas de verificación
+
+1. **Levantar la infraestructura:**
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Listar redes creadas:**
+
+   ```bash
+   docker network ls
+   ```
+
+   Deben aparecer:
+
+   ```
+   frontend_net
+   backend_net
+   data_net
+   ```
+
+3. **Ver los contenedores conectados a cada red:**
+
+   ```bash
+   docker network inspect frontend_net
+   docker network inspect backend_net
+   docker network inspect data_net
+   ```
+
+4. **Probar conectividad con `ping` o `curl`:**
+
+   Instalar herramientas en el contenedor (solo para pruebas):
+
+   ```bash
+   docker exec -it musicshare-frontend sh
+   apk add --no-cache iputils
+   ```
+
+   * Desde el `frontend`:
+
+     ```bash
+     ping formulario-post-front       # ✅ debería responder
+     ping postgres                    # ❌ debería fallar
+     ping userservice                 # ❌ debería fallar
+     ```
+
+   * Desde `userservice`:
+
+     ```bash
+     ping postgres                    # ✅ debería responder
+     ping frontend                    # ❌ debería fallar
+     ```
+
+   * Desde `traefik`:
+
+     ```bash
+     ping frontend                    # ✅
+     ping userservice                 # ✅
+     ```
+
+   Estos resultados confirman el **aislamiento por capas**.
+
+---
+
+### ✅ Resultado
+
+La red de MusicShare queda estructurada de la siguiente forma:
+
+```
+[ Frontend, Formulario Front ]
+           │
+     (frontend_net)
+           │
+        [ Traefik ]
+           │
+     (backend_net)
+           │
+ [ User, Music, Social, Metadata, Notification Services ]
+           │
+     (data_net)
+           │
+ [ Postgres, MongoDB, RabbitMQ ]
+```
+
+Con esta segmentación:
+
+* Los frontends no acceden directamente a los backends ni a las bases de datos.
+* El gateway controla todo el flujo de red.
+* Se reduce la superficie de ataque y se refuerza el aislamiento de servicios.
+
+---
+
+## 🌐 Reverse Proxy Pattern
+
+### 🎯 Objetivo
+
+El **Reverse Proxy Pattern** busca centralizar todo el tráfico de red de una aplicación distribuida en un único punto de entrada.
+Este proxy inverso actúa como intermediario entre los clientes externos y los servicios internos, gestionando el enrutamiento de peticiones, el control de acceso y la seguridad.
+
+En MusicShare, el servicio **Traefik** cumple este rol, funcionando como **reverse proxy y API Gateway** al mismo tiempo.
+
+---
+
+### ⚙️ Implementación en MusicShare
+
+1. **Servicio Traefik**
+
+   * El contenedor `traefik` se definió en el `docker-compose.yml` como el **único servicio que expone puertos al exterior**:
+
+     ```yaml
+     traefik:
+       image: traefik:v3.0
+       ports:
+         - "80:80"       # tráfico HTTP público
+         - "8080:8080"   # dashboard (solo desarrollo)
+       volumes:
+         - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+         - /var/run/docker.sock:/var/run/docker.sock:ro
+       networks:
+         - frontend_net
+         - backend_net
+     ```
+
+     Esto permite que Traefik escuche peticiones externas (HTTP) y se comunique con los microfrontends y microservicios internos en las redes segmentadas.
+
+2. **Configuración base (`traefik/traefik.yml`)**
+
+   ```yaml
+   api:
+     dashboard: true
+     insecure: true
+
+   entryPoints:
+     web:
+       address: ":80"
+
+   providers:
+     docker:
+       endpoint: "unix:///var/run/docker.sock"
+       exposedByDefault: false
+   ```
+
+   Con esto, Traefik:
+
+   * Habilita un **dashboard** para monitorear los routers y servicios detectados.
+   * Define el punto de entrada HTTP en el puerto `80`.
+   * Obtiene dinámicamente la configuración de ruteo a partir de las etiquetas (`labels`) de Docker.
+
+3. **Ruteo basado en etiquetas (`labels`)**
+   Cada microfrontend y microservicio declara etiquetas que indican cómo deben manejarse las solicitudes.
+   Por ejemplo:
+
+   ```yaml
+   userservice:
+     labels:
+       - "traefik.enable=true"
+       - "traefik.http.routers.user.rule=PathPrefix(`/api/users`)"
+       - "traefik.http.services.user.loadbalancer.server.port=8080"
+   ```
+
+   Esto le indica a Traefik que todas las solicitudes que empiecen por `/api/users` deben ser dirigidas al contenedor `userservice`.
+
+   De igual forma:
+
+   * `/` → `frontend`
+   * `/formulario-post` → `formulario-post-front`
+   * `/api/music` → `music-service`
+   * `/api/social` → `social-service`
+   * etc.
+
+4. **Integración con la segmentación de red**
+
+   * Traefik está conectado a las redes `frontend_net` y `backend_net`.
+   * Los contenedores internos **no exponen puertos**; solo Traefik los conoce y los enruta internamente.
+   * Esto asegura que ningún servicio sea accesible directamente desde fuera del entorno Docker.
+
+---
+
+### 🔍 Verificación
+
+1. Levanta la aplicación:
+
+   ```bash
+   docker compose up -d
+   ```
+2. Abre el dashboard de Traefik:
+
+   ```
+   http://localhost:8080/dashboard/
+   ```
+
+   Aquí podrás visualizar todos los routers y middlewares activos.
+3. Accede a las rutas expuestas:
+
+   * `http://localhost/` → frontend principal
+   * `http://localhost/formulario-post` → microfrontend de publicación
+   * `http://localhost/api/users` → microservicio de usuarios
+   * `http://localhost/api/music` → microservicio de música
+
+Solo el contenedor `traefik` debe tener puertos publicados externamente (verificable con `docker ps`).
+
+---
+
+### ⚖️ Comparación: Traefik vs NGINX
+
+| Característica                     | **Traefik**                                                            | **NGINX**                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Naturaleza**                     | Proxy inverso dinámico y API Gateway moderno.                          | Servidor web y proxy inverso tradicional.                     |
+| **Configuración**                  | Basada en etiquetas y detección automática de servicios Docker.        | Requiere un archivo `nginx.conf` estático con rutas manuales. |
+| **Soporte nativo de contenedores** | ✅ Sí, detecta contenedores y redes Docker automáticamente.             | ⚙️ No, requiere configuración manual o scripts externos.      |
+| **Balanceo de carga y middleware** | Integrados, configurables vía labels o API.                            | Requiere módulos o configuración extra.                       |
+| **TLS automático (Let's Encrypt)** | ✅ Nativo.                                                              | ⚙️ Manual o con scripts externos.                             |
+| **Dashboard**                      | ✅ Web GUI en `:8080` con routers, servicios y logs.                    | ❌ No tiene dashboard nativo.                                  |
+| **Orientación**                    | Diseñado para entornos de microservicios, Kubernetes y Docker Compose. | Más usado para servidores web o APIs monolíticas.             |
+
+🔹 En el laboratorio anterior, **NGINX** se configuró manualmente como reverse proxy, especificando rutas en `nginx.conf`.
+🔹 En MusicShare, **Traefik** automatiza este proceso detectando servicios y aplicando reglas declarativas desde las etiquetas Docker.
+Ambos cumplen el mismo patrón **Reverse Proxy**, pero Traefik está optimizado para arquitecturas distribuidas y dinámicas como la tuya.
+
+---
+
+### ✅ Resultado
+
+Con Traefik funcionando como reverse proxy:
+
+* Solo el contenedor `traefik` está expuesto al exterior.
+* Todo el tráfico HTTP pasa primero por el proxy.
+* Los microservicios internos están aislados y se comunican solo dentro de las redes segmentadas.
+* El ruteo es dinámico, declarativo y fácilmente extensible.
+
+Esto completa la implementación del **Reverse Proxy Pattern** en MusicShare, preparando el entorno para el siguiente patrón:
+🔐 **Secure Channel Pattern (TLS/HTTPS)**.
+
+---
+
+### 🧩 Secure Channel Pattern (TLS/HTTPS con Traefik)
+
+Para proteger la comunicación entre el cliente y los servicios, se implementó el **Secure Channel Pattern** mediante **Traefik** actuando como *terminador TLS*.
+Todas las conexiones externas ahora usan HTTPS con certificados locales.
+
+#### 🔧 Configuración principal
+
+* **Entrypoints:**
+
+  * `web` (puerto 80) → redirige automáticamente a `websecure`
+  * `websecure` (puerto 443) → maneja el canal cifrado HTTPS
+* **Certificados locales:**
+  Generados con:
+
+  ```bash
+  docker run --rm -it \
+    -v ./traefik/certs:/certs \
+    alpine/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /certs/musicshare.key \
+    -out /certs/musicshare.crt \
+    -subj "/C=CO/ST=Bogota/L=Bogota/O=Universidad Nacional de Colombia/CN=localhost"
+  ```
+
+  > ⚠️ Los certificados se excluyen del repositorio mediante `.gitignore`.
+
+#### 🔐 Funcionamiento
+
+* Traefik escucha en `80` y `443`, redirigiendo automáticamente HTTP → HTTPS.
+* Termina las conexiones TLS usando los certificados locales.
+* El tráfico interno entre contenedores sigue siendo HTTP dentro de redes aisladas (`frontend_net`, `backend_net`, `data_net`).
+
+#### 🌍 Resultado
+
+* Todas las rutas públicas (`/`, `/api/users`, `/api/music`, etc.) son accesibles en **[https://localhost](https://localhost)**.
+* Los intentos de conexión HTTP son redirigidos automáticamente a HTTPS.
+* Se elimina el riesgo de *mixed content* y se garantiza la confidencialidad de las credenciales de usuario y datos transmitidos.
+
+---

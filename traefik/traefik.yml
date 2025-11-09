@@ -9,6 +9,16 @@ api:
 entryPoints:
   web:
     address: ":80"
+    # Agregar un middleware global que redirige automáticamente cualquier tráfico HTTP al canal HTTPS.
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  # Habilitar el puerto 443 dentro del contenedor de Traefik para manejar conexiones HTTPS
+  websecure:
+    address: ":443"
 
 # Define los proveedores de configuración (providers)
 providers:
