@@ -12,10 +12,13 @@ services:
     # Ya no usamos 'command', la configuración está en los archivos
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
     volumes:
       # Mapeamos el archivo de configuración que acabamos de crear
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # Certificados
+      - ./traefik/certs:/certs:ro
       # Mantenemos el socket de Docker
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -187,6 +190,8 @@ services:
       - "traefik.http.middlewares.music-service-stripprefix.stripprefix.prefixes=/api/music"
       - "traefik.http.routers.music-service.middlewares=music-service-stripprefix"
       - "traefik.http.services.music-service.loadbalancer.server.port=8081"
+      - "traefik.http.routers.music-service.entrypoints=websecure"
+      - "traefik.http.routers.music-service.tls=true"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
       interval: 30s
@@ -229,6 +234,8 @@ services:
       - "traefik.http.middlewares.userservice-stripprefix.stripprefix.prefixes=/api/users"
       - "traefik.http.routers.userservice.middlewares=userservice-stripprefix"
       - "traefik.http.services.userservice.loadbalancer.server.port=8002"
+      - "traefik.http.routers.userservice.entrypoints=websecure"
+      - "traefik.http.routers.userservice.tls=true"
 
   # ===============================
   # 💬 Social Service
@@ -256,6 +263,8 @@ services:
       - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
       - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
       - "traefik.http.services.social-service.loadbalancer.server.port=8083"
+      - "traefik.http.routers.social-service.entrypoints=websecure"
+      - "traefik.http.routers.social-service.tls=true"
 
 
   # ===============================
@@ -274,6 +283,8 @@ services:
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
       - "traefik.http.routers.frontend.priority=1"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
     depends_on:
       - userservice
       - music-service
@@ -303,6 +314,8 @@ services:
       - "traefik.http.middlewares.formulario-post-front-stripprefix.stripprefix.prefixes=/formulario-post"
       - "traefik.http.routers.formulario-post-front.middlewares=formulario-post-front-stripprefix"
       - "traefik.http.services.formulario-post-front.loadbalancer.server.port=80"
+      - "traefik.http.routers.formulario-post-front.entrypoints=websecure"
+      - "traefik.http.routers.formulario-post-front.tls=true"
 
 
 
@@ -338,9 +351,13 @@ services:
       - "traefik.http.middlewares.notificationservice-stripprefix.stripprefix.prefixes=/api/notifications"
       - "traefik.http.routers.notificationservice-rest.middlewares=notificationservice-stripprefix"
       - "traefik.http.services.notificationservice.loadbalancer.server.port=8082"
+      - "traefik.http.routers.notificationservice-rest.entrypoints=websecure"
+      - "traefik.http.routers.notificationservice-rest.tls=true"
       # Router para WebSockets
       - "traefik.http.routers.notificationservice-ws.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.notificationservice-ws.service=notificationservice" # Reutiliza el servicio definido arriba
+      - "traefik.http.routers.notificationservice-ws.entrypoints=websecure"
+      - "traefik.http.routers.notificationservice-ws.tls=true"
 
 # ===============================
 # 🧭 Network & Volumes
