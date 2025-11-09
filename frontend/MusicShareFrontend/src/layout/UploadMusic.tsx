@@ -75,7 +75,7 @@ export default function UploadMusic({ theme }: Props) {
 
     try {
       const response = await fetch(
-        "http://localhost/api/music/api/v1/tracks/upload",
+        "https://localhost/api/music/api/v1/tracks/upload",
         { method: "POST", body: formData }
       );
       const data = await response.json();
@@ -117,7 +117,7 @@ export default function UploadMusic({ theme }: Props) {
 
     try {
       const response = await fetch(
-        "http://localhost/api/social/api/social/posts",
+        "https://localhost/api/social/api/social/posts",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

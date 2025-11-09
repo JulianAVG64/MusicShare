@@ -748,3 +748,42 @@ Esto completa la implementación del **Reverse Proxy Pattern** en MusicShare, pr
 🔐 **Secure Channel Pattern (TLS/HTTPS)**.
 
 ---
+
+### 🧩 Secure Channel Pattern (TLS/HTTPS con Traefik)
+
+Para proteger la comunicación entre el cliente y los servicios, se implementó el **Secure Channel Pattern** mediante **Traefik** actuando como *terminador TLS*.
+Todas las conexiones externas ahora usan HTTPS con certificados locales.
+
+#### 🔧 Configuración principal
+
+* **Entrypoints:**
+
+  * `web` (puerto 80) → redirige automáticamente a `websecure`
+  * `websecure` (puerto 443) → maneja el canal cifrado HTTPS
+* **Certificados locales:**
+  Generados con:
+
+  ```bash
+  docker run --rm -it \
+    -v ./traefik/certs:/certs \
+    alpine/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /certs/musicshare.key \
+    -out /certs/musicshare.crt \
+    -subj "/C=CO/ST=Bogota/L=Bogota/O=Universidad Nacional de Colombia/CN=localhost"
+  ```
+
+  > ⚠️ Los certificados se excluyen del repositorio mediante `.gitignore`.
+
+#### 🔐 Funcionamiento
+
+* Traefik escucha en `80` y `443`, redirigiendo automáticamente HTTP → HTTPS.
+* Termina las conexiones TLS usando los certificados locales.
+* El tráfico interno entre contenedores sigue siendo HTTP dentro de redes aisladas (`frontend_net`, `backend_net`, `data_net`).
+
+#### 🌍 Resultado
+
+* Todas las rutas públicas (`/`, `/api/users`, `/api/music`, etc.) son accesibles en **[https://localhost](https://localhost)**.
+* Los intentos de conexión HTTP son redirigidos automáticamente a HTTPS.
+* Se elimina el riesgo de *mixed content* y se garantiza la confidencialidad de las credenciales de usuario y datos transmitidos.
+
+---

@@ -24,6 +24,7 @@ services:
     networks:
       - frontend_net
       - backend_net
+      - data_net
 
   # ===============================
   # 🗄️ Postgres Database
