@@ -2,10 +2,8 @@
 # Version: 1.0
 # Description: Orquestación completa de los servicios de MusicShare.
 
-
 services:
-
-# === API GATEWAY ===
+  # === API GATEWAY ===
   traefik:
     image: traefik:v3.0
     container_name: musicshare_traefik
@@ -61,7 +59,7 @@ services:
     volumes:
       - postgres_social_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Puerto diferente para evitar conflictos
+      - "5433:5432" # Puerto diferente para evitar conflictos
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U music_user -d social_db"]
       interval: 10s
@@ -93,7 +91,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
 
   # ===============================
   # 🎧 Metadata Service (Spotify Enrichment)
@@ -144,7 +141,11 @@ services:
     networks:
       - backend_net
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.settimeout(2); r=s.connect_ex((\"localhost\",50051)); s.close(); exit(0 if r==0 else 1)'"]
+      test:
+        [
+          "CMD-SHELL",
+          'python -c ''import socket; s=socket.socket(); s.settimeout(2); r=s.connect_ex(("localhost",50051)); s.close(); exit(0 if r==0 else 1)''',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -194,7 +195,16 @@ services:
       - "traefik.http.routers.music-service.entrypoints=websecure"
       - "traefik.http.routers.music-service.tls=true"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--method=GET", "http://localhost:8081/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "--method=GET",
+          "http://localhost:8081/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -267,7 +277,6 @@ services:
       - "traefik.http.routers.social-service.entrypoints=websecure"
       - "traefik.http.routers.social-service.tls=true"
 
-
   # ===============================
   # 🌐 Frontend (React)
   # ===============================
@@ -299,6 +308,39 @@ services:
       start_period: 10s
 
   # ===============================
+  # ⚡ Next.js SSR (Music Upload)
+  # ===============================
+  next-ssr:
+    build:
+      context: ./frontendSSR/music-upload
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: musicshare-next-ssr
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.next-ssr.rule=PathPrefix(`/upload`)"
+      - "traefik.http.routers.next-ssr.priority=2"
+      - "traefik.http.services.next-ssr.loadbalancer.server.port=3000"
+      - "traefik.http.routers.next-ssr.entrypoints=websecure"
+      - "traefik.http.routers.next-ssr.tls=true"
+    depends_on:
+      - frontend
+    networks:
+      - frontend_net
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===============================
   # 🌐 MicroFrontend (Post)
   # ===============================
   formulario-post-front:
@@ -317,8 +359,6 @@ services:
       - "traefik.http.services.formulario-post-front.loadbalancer.server.port=80"
       - "traefik.http.routers.formulario-post-front.entrypoints=websecure"
       - "traefik.http.routers.formulario-post-front.tls=true"
-
-
 
   # ===============================
   # 🐇 RabbitMQ + Notification Service
