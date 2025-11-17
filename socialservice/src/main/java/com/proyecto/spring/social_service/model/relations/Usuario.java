@@ -1,4 +1,4 @@
-package com.proyecto.spring.social_service.model;
+package com.proyecto.spring.social_service.model.relations;
 
 import jakarta.persistence.*;
 

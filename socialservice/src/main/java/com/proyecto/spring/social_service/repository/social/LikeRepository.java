@@ -1,6 +1,6 @@
-package com.proyecto.spring.social_service.repository;
+package com.proyecto.spring.social_service.repository.social;
 
-import com.proyecto.spring.social_service.model.Like;
+import com.proyecto.spring.social_service.model.social.Like;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

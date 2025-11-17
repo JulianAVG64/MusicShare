@@ -1,6 +1,6 @@
-package com.proyecto.spring.social_service.repository;
+package com.proyecto.spring.social_service.repository.social;
 
-import com.proyecto.spring.social_service.model.Post;
+import com.proyecto.spring.social_service.model.social.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;

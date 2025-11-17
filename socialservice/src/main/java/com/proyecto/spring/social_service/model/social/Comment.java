@@ -1,4 +1,4 @@
-package com.proyecto.spring.social_service.model;
+package com.proyecto.spring.social_service.model.social;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

@@ -1,6 +1,6 @@
-package com.proyecto.spring.social_service.repository;
+package com.proyecto.spring.social_service.repository.relations;
 
-import com.proyecto.spring.social_service.model.Usuario;
+import com.proyecto.spring.social_service.model.relations.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
