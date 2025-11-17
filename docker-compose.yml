@@ -5,7 +5,7 @@
 services:
   # === API GATEWAY ===
   traefik:
-    image: traefik:v3.0
+    image: traefik:latest
     container_name: musicshare_traefik
     # Ya no usamos 'command', la configuración está en los archivos
     ports:
@@ -351,8 +351,6 @@ services:
       - frontend
     networks:
       - frontend_net
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
     healthcheck:
