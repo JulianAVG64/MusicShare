@@ -216,7 +216,7 @@ Deployment View:
 ![Diagrama de despliegue](Diagrama_Despliegue.png)
 
 ## Decomposition Structure
-![Diagrama de descomposición de Dominio](Diagrama_de_descomposicion_D.jpg)
+![Diagrama de descomposición de Dominio](general.PNG)
 ## Description 
 🎵 Estructura de Descomposición de Dominio — MusicShare
 Dominio Raíz: MusicShare
@@ -224,6 +224,13 @@ Dominio Raíz: MusicShare
 Descripción general:
 MusicShare es una plataforma colaborativa para compartir, reproducir y descubrir música. El sistema está diseñado bajo una arquitectura basada en microservicios, donde cada dominio encapsula una funcionalidad específica, comunicándose entre sí mediante un API Gateway.
 Su estructura promueve la escalabilidad, la independencia de desarrollo y el despliegue modular de componentes.
+
+![Frontend](frontend.PNG)
+![FrontendSSR](frontendSSR.PNG)
+![notificationservice](notificationservice.PNG)
+![musicservice](musicservice.PNG)
+![traefik](traefik.PNG)
+![metadataservice](metadataservice.PNG)
 
 ### 1. web_frontend
 
