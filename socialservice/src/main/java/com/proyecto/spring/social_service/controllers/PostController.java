@@ -70,7 +70,7 @@ public class PostController {
     @GetMapping("/usuario/{userId}")
     public List<Post> obtenerPorUsuario(
             @Parameter(description = "ID del usuario")    
-            @PathVariable UUID userId) {
+            @PathVariable int userId) {
         return postRepository.findByUserId(userId);
     }
 

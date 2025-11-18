@@ -14,7 +14,7 @@ public class Like {
     private UUID likeId;
 
     @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    private int userId;
 
     @Column(name = "post_id", nullable = false)
     private UUID postId;
@@ -32,11 +32,11 @@ public class Like {
         this.likeId = likeId;
     }
 
-    public UUID getUserId() {
+    public int getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(int userId) {
         this.userId = userId;
     }
 

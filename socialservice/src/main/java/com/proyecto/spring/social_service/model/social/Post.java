@@ -14,7 +14,7 @@ public class Post {
     private UUID postId;
 
     @Column(name = "user_id", nullable = false)
-    private UUID userId; // referencia al usuario (del UserService)
+    private int userId; // referencia al usuario (del UserService)
 
     @Column(name = "track_id", nullable = true)
     private String trackId; // referencia al track de MongoDB
@@ -38,8 +38,8 @@ public class Post {
     public UUID getPostId() { return postId; }
     public void setPostId(UUID postId) { this.postId = postId; }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public int getUserId() { return userId; }
+    public void setUserId(int userId) { this.userId = userId; }
 
     public String getTrackId() { return trackId; }
     public void setTrackId(String trackId) { this.trackId = trackId; }

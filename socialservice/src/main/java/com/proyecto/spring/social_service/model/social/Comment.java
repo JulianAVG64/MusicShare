@@ -17,7 +17,7 @@ public class Comment {
     private UUID postId;
 
     @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    private int userId;
 
     @Column(name = "parent_comment_id")
     private UUID parentCommentId;
@@ -36,7 +36,7 @@ public class Comment {
     public Comment() {
     }
 
-    public Comment(UUID commentId, UUID postId, UUID userId, UUID parentCommentId,
+    public Comment(UUID commentId, UUID postId, int userId, UUID parentCommentId,
                    String content, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.commentId = commentId;
         this.postId = postId;
@@ -65,11 +65,11 @@ public class Comment {
         this.postId = postId;
     }
 
-    public UUID getUserId() {
+    public int getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(int userId) {
         this.userId = userId;
     }
 
