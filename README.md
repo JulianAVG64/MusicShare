@@ -216,7 +216,7 @@ Deployment View:
 ![Diagrama de despliegue](Diagrama_Despliegue.png)
 
 ## Decomposition Structure
-![Diagrama de descomposición de Dominio](general.PNG)
+![Diagrama de descomposición de Dominio](general.png)
 ## Description 
 🎵 Estructura de Descomposición de Dominio — MusicShare
 Dominio Raíz: MusicShare
