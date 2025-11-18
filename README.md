@@ -15,7 +15,7 @@
  - **Logo**
 ![Logo](Logo.jpg)
  - **Description**
-**MusicShare** es una red social de música desarrollada con una **arquitectura distribuida de microservicios**, que integra presentación web en **React/TypeScript**, servicios de negocio independientes y bases de datos híbridas (**PostgreSQL y MongoDB/Elasticsearch**). El sistema permite a los usuarios compartir y descubrir música mientras garantiza **escalabilidad horizontal**, **baja latencia en streaming y alta disponibilidad**. La comunicación entre componentes se gestiona mediante **REST, gRPC y WebSockets**, bajo un esquema seguro con **OAuth2/JWT y TLS 1.2+**. Todo el software se despliega en entornos contenedorizados con Docker/Kubernetes, con monitoreo centralizado, pruebas automatizadas y cumplimiento de estándares de usabilidad, accesibilidad (WCAG 2.1 AA) y protección de datos (GDPR/legislación colombiana).
+**MusicShare** es una red social de música desarrollada con una **arquitectura distribuida de microservicios**, que integra presentación web en **React/TypeScript**, servicios de negocio independientes y bases de datos híbridas (**PostgreSQL y MongoDB**). El sistema permite a los usuarios compartir y descubrir música mientras garantiza **escalabilidad horizontal**, **baja latencia en streaming y alta disponibilidad**. La comunicación entre componentes se gestiona mediante **REST, gRPC y WebSockets**, bajo un esquema seguro con **OAuth2/JWT y TLS 1.2+**. Todo el software se despliega en entornos contenedorizados con Docker/Kubernetes, con monitoreo centralizado, pruebas automatizadas y cumplimiento de estándares de usabilidad, accesibilidad (WCAG 2.1 AA) y protección de datos (GDPR/legislación colombiana).
 # MusicShare - Red Social Musical
 ## Functional Requirements
 ### RF01 - Gestión de Usuarios
@@ -66,7 +66,7 @@ El sistema debe contar con un conjunto de componentes de lógica, representados 
 ### RNF-1.4 Componentes de Datos
 El sistema incluye componentes de datos de distinto tipo, específicamente:
 Base de datos relacional (PostgreSQL) para información estructurada de usuarios, relaciones sociales y metadatos clave.
-Base de datos NoSQL (MongoDB/Elasticsearch) para almacenamiento de metadatos musicales, búsqueda y análisis flexible.
+Base de datos NoSQL (MongoDB) para almacenamiento de metadatos musicales, búsqueda y análisis flexible.
 Conectividad y Protocolos
 ### RNF-2.1 conectores basados en HTTP:
 REST para operaciones CRUD y comunicación estándar entre frontend, gateway y microservicios.
@@ -128,7 +128,7 @@ Cada servicio expondrá un endpoint /health para chequeos automáticos por parte
 # Architectural Structures
 ## Components and Connectors (C&C) Structure
 C&C View:
-![C&C View](CyC.png)
+![C&C View](CyC_prototipo3.png)
 
 ## Description of architectural styles used.
 
@@ -313,35 +313,20 @@ Registro de eventos relevantes para los usuarios.
 ## Correciones entrga anterior y cumplimiento de requisitos actuales
 
 ### Correciones hechas:
-- Ya se implementó una funcionalidad equivalente a un MVP.
-- Se mejoró la consistencia de la documentación.
-- El sistema se despliega correctamente.
-- La capa de presentación ya está activa y funcionando.
-- Ya se hace uso del conector gRPC para comunicar MusicService con MetadataService.
-- La vista CyC fue correjida teniendo en cuenta los comentarios realizados por el profesor.
+- Ya se agregó el cuarto componente de la capa de base de datos.
+- Se implementó un componente SSR. Este componente corresponde al formulario para hacer un post de una canción.
+- Se corrigió la documentación inconsistente.
+- Cada vista ya tiene su propósito principal. Se revisó y corrigió la descripción de los elementos, relaciones y propiedades de cada vista.
 
-### Cumplimientos del prototipo 2:
-- El sistema implementa una arquitectura distribuida.
-- Se implementarios dos componentes de presentación (Web frontent y Post frontend)
-> ⚠️ **Aclaración importante:**  
-> Originalmente se planeó manejar los microfrontends como uno para **web** y otro para **móvil**.  
-> Sin embargo, debido a que la persona encargada del móvil se retiró del equipo, se decidió como solución rápida **separar una parte del web frontend original y manejarla como microfrontend independiente**.  
->  
-> Por esta razón existe un **formulario de post** tanto en el *Web Frontend* como en el *Post Frontend*.  
-> Cada frontend corre en su propio contenedor, **cumpliendo así el requisito de arquitectura basada en microfrontends**.
-- Se implementaron 5 componentes lógicos (MetadataService, MusicService, SocialService, UserService y NotificationService)
-- Se implementó un componente de comunicación entre los componentes lógicos. (API Gateway cuya configuración se puede ver en el archivo docker-compose.yml)
-- El API Gateway cumple con ser un componente encargado de manejar procesos asíncronos.
-- Se implementaron conectores REST y un conector gRPC.
-- Se usan 5 lenguajes de propósito general diferentes (Go, Python, Java, TypeScript, JavaScript)
-> ⚠️ **:**  
-> Se pensaba realizar el microfrontend orientado a móbil con el lenguaje Flutter.
-> Debido a que la persona encargada se retiró del grupo, no se pudo realizar para esta entrega  
-- El desplieque del sistema es orientado a contenedores.
-
-### No se cumplió:
-- Implementación de subarquitectura SSR.
-- No se implementó un cuarto componente de data-type. Hay tres componentes actualmente (user_db, music_db, social_db). El cuarto componente podría ser el almacenamiento de las canciones pero no ha sido implementado en nube.
+### Cumplimientos del prototipo 3:
+- Escenarios de seguridad:
+  - Escenario 1: Se implementó el patrón de [Secure Channel Pattern](#-secure-channel-pattern-tlshttps-con-traefik) para proteger la comunicación entre el cliente y los servicios.  
+  - Escenario 2: Se implementó el patrón de [Reverse Proxy Pattern](#-reverse-proxy-pattern) para centralizar todo el tráfico de red en un único punto de entrada.  
+  - Escenario 3: Se implementó el patrón de [Network Segmentation Pattern](#-network-segmentation-pattern) para aislar las capas de la aplicación.  
+  - Escenario 4: Se implementó el patrón de [Access Token Pattern](#-access-token-pattern) para manejar sesiones y autenticación en los microservicios.
+- Escenarios de seguridad:
+    - Escenario 1: Se implementó el patrón de [Load Balancer](#load-balancer-pattern) y se realizaron pruebas de estrés a tres servicios.
+    - Escenario 2: Se implementó el patrón de [Auto Scaling](#auto-scaling-pattern) ajusta el número de recursos computacionales.
 
 ---
 
@@ -373,10 +358,21 @@ touch .env
 
 # 📋 Copiar el contenido del archivo de ejemplo (.env.example) al nuevo archivo
 cp .env.example .env
+```
 
-# ✏️ Agregar tus credenciales del API de Spotify dentro del archivo .env
-echo "SPOTIFY_CLIENT_ID=ac2b79b47a0643bd824d4fece4d8d110" >> .env
-echo "SPOTIFY_CLIENT_SECRET=3a61c9187a674bf9a505e9a810700e6d" >> .env
+##### ✏️ Agregar las credenciales del API de Spotify dentro del archivo .env
+Reemplaza las siguientes líneas
+SPOTIFY_CLIENT_ID=ac2b79b47a0643bd824d4fece4d8d110
+SPOTIFY_CLIENT_SECRET=3a61c9187a674bf9a505e9a810700e6d
+
+```bash
+# Generar certificados locales con el comando:
+docker run --rm -it \
+  -v ./traefik/certs:/certs \
+  alpine/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /certs/musicshare.key \
+  -out /certs/musicshare.crt \
+  -subj "/C=CO/ST=Bogota/L=Bogota/O=Universidad Nacional de Colombia/CN=localhost"
 ```
 
 ```bash
@@ -393,11 +389,10 @@ docker compose ps
 
 ## 🚀 Servicios levantados
 
-- **Web Frontend** → [http://localhost](http://localhost)
-- **Post Frontend** → [http://localhost/formulario-post/index.html](http://localhost/formulario-post/index.html)
-- **User Service** → [http://localhost/api/users](http://localhost/api/users)
-- **Music Service** → [http://localhost/api/music](http://localhost/api/music)
-- **Social Service** → [http://localhost/api/social](http://localhost/api/social)
+- **Web Frontend** → [https://localhost](http://localhost)
+- **User Service** → [https://localhost/api/users/docs](http://localhost/api/users)
+- **Music Service** → [https://localhost/api/music/swagger/index.html](http://localhost/api/music)
+- **Social Service** → [https://localhost/api/social/swagger-ui/index.html](http://localhost/api/social)
 - **Postgres** → puerto `5432`
 - **MongoDB** → puerto `27017`
 
@@ -421,7 +416,7 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 ## 📖 Endpoints principales de los servicios
 
 ### UserService
-**Documentacion** [http://localhost/api/users/docs](http://localhost/api/users/docs)
+**Documentacion** [https://localhost/api/users/docs](http://localhost/api/users/docs)
 - **Health**: `GET /health`
 - **Registro**: `POST /auth/register`
 - **Login**: `POST /auth/token` (devuelve JWT)
@@ -429,7 +424,7 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 - **Proxy playlists**: `GET /proxy/users/{id}/playlists`
 
 ### MusicService
-**Documentacion** [http://localhost/api/music/swagger/index.html](http://localhost/api/music/swagger/index.html)
+**Documentacion** [https://localhost/api/music/swagger/index.html](http://localhost/api/music/swagger/index.html)
 - `POST /api/v1/tracks/upload` - Subir audio
 - `GET /api/v1/tracks` - Listar tracks
 - `GET /api/v1/tracks/{id}/stream` - Stream de audio
@@ -437,7 +432,7 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 - Healthcheck en `/health`
 
 ### SocialService
-**Documentacion** [http://localhost/api/social/swagger-ui/index.html](http://localhost/api/social/swagger-ui/index.html)
+**Documentacion** [https://localhost/api/social/swagger-ui/index.html](http://localhost/api/social/swagger-ui/index.html)
 
 #### Posts
 - `POST /api/social/posts` — Crear una publicación  
@@ -459,7 +454,7 @@ Para verificar que la subida de la canción y el post ha sido satisfactoria pued
 
 ---
 
-## 🧩 Network Segmentation Pattern
+# 🧩 Network Segmentation Pattern
 
 ### 🎯 Objetivo
 
@@ -606,7 +601,7 @@ Con esta segmentación:
 
 ---
 
-## 🌐 Reverse Proxy Pattern
+# 🌐 Reverse Proxy Pattern
 
 ### 🎯 Objetivo
 
@@ -615,7 +610,6 @@ Este proxy inverso actúa como intermediario entre los clientes externos y los s
 
 En MusicShare, el servicio **Traefik** cumple este rol, funcionando como **reverse proxy y API Gateway** al mismo tiempo.
 
----
 
 ### ⚙️ Implementación en MusicShare
 
@@ -690,7 +684,6 @@ En MusicShare, el servicio **Traefik** cumple este rol, funcionando como **rever
    * Los contenedores internos **no exponen puertos**; solo Traefik los conoce y los enruta internamente.
    * Esto asegura que ningún servicio sea accesible directamente desde fuera del entorno Docker.
 
----
 
 ### 🔍 Verificación
 
@@ -715,7 +708,6 @@ En MusicShare, el servicio **Traefik** cumple este rol, funcionando como **rever
 
 Solo el contenedor `traefik` debe tener puertos publicados externamente (verificable con `docker ps`).
 
----
 
 ### ⚖️ Comparación: Traefik vs NGINX
 
@@ -733,7 +725,6 @@ Solo el contenedor `traefik` debe tener puertos publicados externamente (verific
 🔹 En MusicShare, **Traefik** automatiza este proceso detectando servicios y aplicando reglas declarativas desde las etiquetas Docker.
 Ambos cumplen el mismo patrón **Reverse Proxy**, pero Traefik está optimizado para arquitecturas distribuidas y dinámicas como la tuya.
 
----
 
 ### ✅ Resultado
 
@@ -981,3 +972,161 @@ Todas las conexiones externas ahora usan HTTPS con certificados locales.
 * Se elimina el riesgo de *mixed content* y se garantiza la confidencialidad de las credenciales de usuario y datos transmitidos.
 
 ---
+
+# 🔑 Access Token Pattern
+
+## 🎯 Objetivo
+
+El **Access Token Pattern** permite autenticar y autorizar solicitudes en aplicaciones distribuidas mediante el uso de **tokens firmados**, evitando el uso de sesiones tradicionales basadas en cookies o almacenamiento centralizado.
+
+Este patrón es esencial en MusicShare para:
+
+* Manejar **sesiones de usuario** entre microfrontends y microservicios.
+* Garantizar que cada solicitud lleve información verificable sobre el usuario.
+* Obtener el **ID del usuario autenticado** cuando se realizan acciones sensibles (como subir un post, crear comentarios, dar like, etc.).
+* Evitar dependencias entre servicios o estado compartido en memoria.
+
+
+## 🔧 ¿Cómo funciona en MusicShare?
+
+MusicShare implementa un esquema **JWT-based Access Token**, donde el microservicio de usuarios (`userservice`) es responsable de:
+
+1. **Verificar credenciales** cuando un usuario inicia sesión.
+
+2. **Emitir un access token** con datos esenciales del usuario:
+
+   * `userId`
+   * `username` (si aplica)
+   * fecha de expiración
+   * firma criptográfica para evitar manipulación
+
+3. Entregar el token al cliente (frontend).
+
+4. El cliente almacena temporalmente el token (ej. `localStorage`).
+
+5. Todas las solicitudes a microservicios incluyen el token en la cabecera HTTP:
+
+   ```
+   Authorization: Bearer <token>
+   ```
+
+6. Cada microservicio valida el token localmente sin necesidad de contactar al userservice.
+
+
+## 📦 Implementación del patrón
+
+### 1. Emisión del token (login)
+
+Cuando el usuario inicia sesión correctamente:
+
+```json
+{
+  "token": "<JWT generado>",
+  "expiresIn": 3600
+}
+```
+
+El frontend guarda este token y lo envía en todas las peticiones subsecuentes.
+
+
+### 2. Inclusión del token en solicitudes
+
+Ejemplo desde un frontend:
+
+```js
+fetch("https://localhost/api/social/posts", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ text: "Mi nueva publicación" })
+});
+```
+
+
+### 3. Validación del token en microservicios
+
+Cada microservicio tiene un middleware o filtro que:
+
+1. **Extrae** el token del header.
+2. **Verifica la firma** usando la clave secreta compartida.
+3. **Comprueba expiración**.
+4. Recupera el `userId` para vincular la acción con el usuario autenticado.
+
+Ejemplo de extracción:
+
+```java
+String token = request.getHeader("Authorization").replace("Bearer ", "");
+String userId = jwtService.getUserIdFromToken(token);
+```
+
+Esto permite, por ejemplo, crear un post asociado al usuario correcto sin que el frontend envíe manualmente el campo `userId`.
+
+
+## 🔐 Beneficios del Patrón
+
+### ✔ No requiere estado compartido entre servicios
+
+Cada microservicio puede validar tokens por sí mismo.
+
+### ✔ Escala de forma natural en entornos de microservicios
+
+No requiere sesiones centralizadas ni sticky sessions.
+
+### ✔ Reduce superficie de ataque
+
+No se envían credenciales en cada solicitud, solo tokens firmados.
+
+### ✔ Simplifica autorización
+
+El backend recibe directamente el `userId` en el token sin confiar en valores proporcionados desde el cliente.
+
+### ✔ Ideal para arquitecturas basadas en API Gateway
+
+Traefik pasa el token sin inspección; la autenticación se maneja internamente.
+
+
+## 🛡️ Pruebas de verificación
+
+1. **Iniciar sesión** y verificar que el servidor responde con un token válido.
+
+2. Enviar una solicitud autenticada:
+
+   ```bash
+   curl -X GET https://localhost/api/social/feed \
+     -H "Authorization: Bearer <token>"
+   ```
+
+3. Enviar una solicitud **sin token** o con token inválido y verificar que retorna `401 Unauthorized`.
+
+4. Crear un post y verificar en base de datos que:
+
+   * el post está asociado al `userId` que viene dentro del token,
+   * no depende de valores enviados desde el frontend.
+
+
+## 🧩 Integración con otros patrones de MusicShare
+
+| Patrón                              | Relación con Access Token Pattern                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Reverse Proxy Pattern (Traefik)** | Traefik enruta las peticiones, pero **no interpreta tokens**. El token fluye transparente hacia los microservicios. |
+| **Secure Channel Pattern (HTTPS)**  | Los tokens viajan cifrados, evitando robo de credenciales (MitM, sniffing).                                         |
+| **Network Segmentation Pattern**    | Los tokens permiten que el API Gateway dirija tráfico sin exponer servicios ni almacenar sesiones.                  |
+
+
+## ✅ Resultado
+
+Con el **Access Token Pattern**, MusicShare garantiza:
+
+* Autenticación y autorización seguras entre microservicios.
+* Sesiones sin estado (**stateless authentication**).
+* Extracción confiable del `userId` para acciones como subir posts, comentarios o likes.
+* Un modelo de seguridad consistente, escalable y compatible con arquitecturas distribuidas.
+
+---
+
+# Load Balancer Pattern
+
+---
+# Auto Scaling Pattern
