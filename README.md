@@ -168,8 +168,12 @@ C&C View:
   - Conexión MusicService con MetadataService
 
 ## Layered Structure
-Layered View:
-![Diagrama de capas](Diagrama_Capas.png)
+##### Layered View:
+![Diagrama de capas](Diagrama_capas.png)
+
+##### Diagrama de capas de la capa de negocios:
+
+![Diagrama de capas de negocios](Capas_Business.png)
 
 ## Descripción de los Patrones Arquitectónicos Utilizados
 
