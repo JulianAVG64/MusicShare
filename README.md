@@ -225,12 +225,12 @@ Descripción general:
 MusicShare es una plataforma colaborativa para compartir, reproducir y descubrir música. El sistema está diseñado bajo una arquitectura basada en microservicios, donde cada dominio encapsula una funcionalidad específica, comunicándose entre sí mediante un API Gateway.
 Su estructura promueve la escalabilidad, la independencia de desarrollo y el despliegue modular de componentes.
 
-![Frontend](frontend.PNG)
-![FrontendSSR](frontendSSR.PNG)
-![notificationservice](notificationservice.PNG)
-![musicservice](musicservice.PNG)
-![traefik](traefik.PNG)
-![metadataservice](metadataservice.PNG)
+![Frontend](frontend.png)
+![FrontendSSR](frontendSSR.png)
+![notificationservice](notificationservice.png)
+![musicservice](musicservice.png)
+![traefik](traefik.png)
+![metadataservice](metadataservice.png)
 
 ### 1. web_frontend
 
