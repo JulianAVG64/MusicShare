@@ -169,7 +169,7 @@ C&C View:
 
 ## Layered Structure
 ##### Layered View:
-![Diagrama de capas](Diagrama_capas.png)
+![Diagrama de capas](Diagrama_Capas.png)
 
 ##### Diagrama de capas de la capa de negocios:
 
