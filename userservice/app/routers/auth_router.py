@@ -12,10 +12,18 @@ def register(
     email: str = Form(...),
     username: str = Form(...),
     password: str = Form(...),
+    first_name: str = Form(...), 
+    last_name: str = Form(...),
     db: Session = Depends(get_db)
 ):
     # Construir el objeto UserCreate
-    user_in = schemas.UserCreate(email=email, username=username, password=password)
+    user_in = schemas.UserCreate(        
+        email=email, 
+        username=username, 
+        password=password,
+        first_name=first_name, 
+        last_name=last_name   
+        )
     
     # Validar que el email no esté registrado
     if crud.get_user_by_email(db, user_in.email):
