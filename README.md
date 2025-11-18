@@ -227,34 +227,6 @@ MusicShare es una plataforma colaborativa para compartir, reproducir y descubrir
 Su estructura promueve la escalabilidad, la independencia de desarrollo y el despliegue modular de componentes.
 Cliente para funcionalidades principales
 
-**frontend/** - Interfaz gráfica para la interacción de usuario con los demás servicios 
-
-**frontendSSR/** - Cliente con Server-Side Rendering que carga el formulario para enviar al cliente para crear los POST 
-
-**metadataservice/** - Servicio de Metadatos - Gestiona información sobre canciones, álbumes, artistas
-
-**musicservice/** - Servicio de Música Principal - Guarda la música para completar el post y se comunica con MetadataService
-
-**notificationservice/** - Servicio de Notificaciones
-
-**userservice/** - Servicio de Usuarios - Gestión de usuarios, autenticación y autorización
-
-**socialservice/** - Servicio Social - Funcionalidades sociales: comentarios, likes, subir POSTs, seguimiento entre usuarios, feeds de actividad
-
-**traefik/** - Reverse Proxy, Load Balancer, API Gateway para el sistema de microservicios
-
-**script/** - Scripts de Operaciones - Automatización de despliegues, backups, mantenimiento
-
-
-
-
-
-
-![traefik](traefik.png)
-
-
-
-
 
 ### 1. frontend
 
@@ -285,7 +257,7 @@ Cliente para funcionalidades principales
 
 ### 3. SocialService
 
-
+![socialservice](socialservice.png)
 
 - **Responsabilidad principal:**
   - Encargado del componente social de la plataforma. Administra las interacciones, conexiones y actividades entre los usuarios.
@@ -303,7 +275,7 @@ Cliente para funcionalidades principales
 - **Responsabilidad principal:**
   - Administrar los recursos musicales y su ciclo de vida dentro del sistema.
 
-**- Funciones clave:**
+- **Funciones clave:**
   - Almacenamiento y gestión de canciones y álbumes.
   - Control de derechos, autoría y acceso.
   - Integración con el MetadataService para obtener información descriptiva.
@@ -320,10 +292,17 @@ Cliente para funcionalidades principales
   - Actúa como punto único de entrada al ecosistema MusicShare.
 
 -**Funciones clave**:
-  - Enrutamiento y balanceo de peticiones.
   - Seguridad, autenticación y autorización.
   - Control de tráfico, logging y CORS.
   - Comunicación entre frontends y los servicios internos.
+
+## Load Balancer
+- **Responsabilidad principal:**
+  - Distribuir equitativamente las solicitudes entrantes entre múltiples instancias de un servicio.
+
+-**Funciones clave**:
+  - Garantizar alta disponibilidad del ecosistema MusicShare.
+  - Garantizar escalabilidad del ecosistema MusicShare.
 
 ### 6. MetadataService
 
@@ -339,6 +318,9 @@ Cliente para funcionalidades principales
   - Posible integración con APIs externas para completar metadatos.
 
 ### 7. UserService
+
+![userservice](userservice.png)
+
 - **Responsabilidad principal:**
   - Gestionar la información y autenticación de los usuarios del sistema.
 
