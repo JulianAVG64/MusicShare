@@ -749,6 +749,200 @@ Esto completa la implementación del **Reverse Proxy Pattern** en MusicShare, pr
 
 ---
 
+## 🌐 API Gateway - Arquitectura y Configuración
+
+### 📋 Descripción General
+
+MusicShare utiliza **Traefik** como API Gateway, proporcionando un punto de entrada unificado para todos los servicios del sistema. El gateway gestiona:
+
+- **Enrutamiento automático** basado en prefijos de ruta
+- **Descubrimiento dinámico** de servicios vía Docker labels
+- **Seguridad TLS/SSL** con redirección automática HTTP → HTTPS
+- **Balanceo de carga** entre instancias de servicios
+- **Middlewares** para transformación de rutas (strip prefix)
+
+📖 Para documentación detallada sobre el API Gateway, consulta: **[APIGateway.md](./APIGateway.md)**
+
+### 🗺️ Mapa de Rutas
+
+```
+https://localhost/
+├── /                          → Frontend React (Puerto 80) [Prioridad 1]
+├── /upload                    → Next.js SSR (Puerto 3000) [Prioridad 2]
+├── /formulario-post           → Formulario Post Frontend (Puerto 80)
+├── /api/users/*               → UserService (Puerto 8002)
+├── /api/music/*               → MusicService (Puerto 8081)
+├── /api/social/*              → SocialService (Puerto 8083)
+├── /api/notifications/*       → NotificationService (Puerto 8082)
+└── /ws                        → NotificationService WebSocket (Puerto 8082)
+```
+
+### ✅ Servicios Configurados
+
+| Servicio | Ruta Externa | Puerto Interno | Strip Prefix | Estado |
+|----------|--------------|----------------|--------------|--------|
+| Frontend React | `/` | 80 | ❌ | ✅ Activo |
+| Next.js SSR | `/upload` | 3000 | ❌ | ✅ Activo |
+| Formulario Post | `/formulario-post` | 80 | ✅ | ✅ Activo |
+| UserService | `/api/users` | 8002 | ✅ | ✅ Activo |
+| MusicService | `/api/music` | 8081 | ✅ | ✅ Activo |
+| SocialService | `/api/social` | 8083 | ✅ | ✅ Activo |
+| NotificationService | `/api/notifications` | 8082 | ✅ | ✅ Activo |
+| NotificationService WS | `/ws` | 8082 | ❌ | ✅ Activo |
+| **MetadataService** | - | 50051 (gRPC) | - | 🔒 **Interno** |
+
+> 💡 **Nota sobre MetadataService**: Este servicio utiliza gRPC y es consumido **únicamente por MusicService** de forma interna. Por diseño arquitectónico correcto, **no está expuesto** a través del API Gateway.
+
+### ⚠️ Servicios Pendientes
+
+#### SearchService ❌
+- **Estado**: No implementado (carpeta vacía)
+- **Ruta sugerida**: `/api/search`
+- **Acción requerida**: Implementar el servicio antes de configurar en el gateway
+
+### 🔧 Configuración del Gateway
+
+#### Archivo `traefik/traefik.yml`
+```yaml
+api:
+  dashboard: true
+  insecure: true  # Dashboard en puerto 8080 (solo desarrollo)
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https  # Redirección HTTP → HTTPS
+
+  websecure:
+    address: ":443"  # HTTPS
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false  # Requiere traefik.enable=true explícito
+
+log:
+  level: DEBUG
+```
+
+#### Puertos Expuestos
+- **80**: HTTP (redirige automáticamente a HTTPS)
+- **443**: HTTPS (punto de entrada principal)
+- **8080**: Dashboard de Traefik (monitoreo en tiempo real)
+
+### 📊 Dashboard de Monitoreo
+
+Accede al dashboard de Traefik para ver:
+- Routers activos y sus reglas
+- Estado de servicios backend y sus réplicas
+- Middlewares aplicados
+- Métricas de tráfico en tiempo real
+- Distribución de carga entre réplicas
+
+```
+http://localhost:8080/dashboard/
+```
+
+### ⚖️ Balanceo de Carga y Escalado
+
+MusicShare implementa **balanceo de carga automático** con Traefik. Los servicios backend se ejecutan con **múltiples réplicas** para alta disponibilidad y mejor rendimiento.
+
+#### Servicios Escalables
+
+| Servicio | Réplicas Iniciales | Algoritmo | Sticky Sessions |
+|----------|-------------------|-----------|-----------------|
+| UserService | 2 | Round Robin | ✅ Habilitadas |
+| MusicService | 2 | Round Robin | ✅ Habilitadas |
+| SocialService | 2 | Round Robin | ✅ Habilitadas |
+| NotificationService | 2 | Round Robin | ✅ Habilitadas |
+
+#### Escalar Servicios Manualmente
+
+```powershell
+# Usando Docker Compose directamente
+docker compose up -d --scale userservice=5 --no-recreate
+
+# Usando el script de escalado (recomendado)
+.\scripts\scale-service.ps1 -Service userservice -Replicas 5
+.\scripts\scale-service.ps1 -Service all -Replicas 3
+```
+
+#### Probar el Balanceo de Carga
+
+```powershell
+# Ejecutar prueba de carga
+.\scripts\load-test.ps1 -Service userservice -Requests 20 -Delay 500
+
+# El script mostrará:
+# - Estado de cada petición
+# - Tiempos de respuesta
+# - Distribución entre réplicas
+```
+
+#### Características del Balanceo
+
+- ✅ **Round Robin**: Distribución equitativa de peticiones
+- ✅ **Health Checks**: Verificación automática cada 10s
+- ✅ **Sticky Sessions**: Mantiene sesiones de usuario consistentes
+- ✅ **Failover Automático**: Si una réplica falla, el tráfico va a las sanas
+- ✅ **Límites de Recursos**: CPU y RAM controlados por réplica
+
+### 🔄 Ejemplo de Configuración de Servicio
+
+Cuando agregas un nuevo servicio al `docker-compose.yml`, la configuración de Traefik se hace mediante labels:
+
+```yaml
+nuevo-servicio:
+  build:
+    context: ./nuevo-servicio
+  container_name: musicshare-nuevo-servicio
+  networks:
+    - backend_net
+  labels:
+    # Habilitar en Traefik
+    - "traefik.enable=true"
+    
+    # Regla de enrutamiento
+    - "traefik.http.routers.nuevo-servicio.rule=PathPrefix(`/api/nuevo`)"
+    
+    # Middleware para eliminar prefijo
+    - "traefik.http.middlewares.nuevo-servicio-stripprefix.stripprefix.prefixes=/api/nuevo"
+    - "traefik.http.routers.nuevo-servicio.middlewares=nuevo-servicio-stripprefix"
+    
+    # Puerto del contenedor
+    - "traefik.http.services.nuevo-servicio.loadbalancer.server.port=8000"
+    
+    # Punto de entrada y TLS
+    - "traefik.http.routers.nuevo-servicio.entrypoints=websecure"
+    - "traefik.http.routers.nuevo-servicio.tls=true"
+```
+
+### 🎯 Ventajas del API Gateway
+
+1. **Punto único de entrada**: Simplifica la gestión de seguridad y monitoreo
+2. **Desacoplamiento**: Los clientes no necesitan conocer las ubicaciones de los servicios
+3. **Flexibilidad**: Cambios en servicios backend sin afectar al frontend
+4. **Escalabilidad**: Permite balanceo de carga automático
+5. **Seguridad**: Centraliza autenticación, rate limiting y TLS
+6. **Descubrimiento dinámico**: Detecta automáticamente nuevos servicios
+
+### 🚀 Agregar un Nuevo Servicio
+
+1. Define el servicio en `docker-compose.yml` con las labels de Traefik
+2. Levanta el servicio: `docker compose up -d nuevo-servicio`
+3. Traefik detecta automáticamente y comienza a enrutar tráfico
+4. Verifica en el dashboard: `http://localhost:8080`
+
+**No es necesario reiniciar Traefik** - la configuración se actualiza dinámicamente.
+
+---
+
+---
+
 ### 🧩 Secure Channel Pattern (TLS/HTTPS con Traefik)
 
 Para proteger la comunicación entre el cliente y los servicios, se implementó el **Secure Channel Pattern** mediante **Traefik** actuando como *terminador TLS*.

@@ -19,6 +19,8 @@ services:
       - ./traefik/certs:/certs:ro
       # Mantenemos el socket de Docker
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Carpeta de logs compartida para ser leída por Telegraf
+      - traefik_logs:/var/log/traefik
     networks:
       - frontend_net
       - backend_net
@@ -174,13 +176,13 @@ services:
       start_period: 10s
 
   # ===============================
-  # 🎵 Music Service
+  # 🎵 Music Service (Escalable)
   # ===============================
   music-service:
     build:
       context: ./musicservice
       dockerfile: Dockerfile
-    container_name: musicshare-music-service
+    # Removido container_name para permitir múltiples réplicas
     restart: unless-stopped
     environment:
       SERVER_PORT: 8081
@@ -208,12 +210,31 @@ services:
     networks:
       - backend_net
       - data_net
+    deploy:
+      replicas: 2  # Iniciar con 2 réplicas por defecto
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.music-service.rule=PathPrefix(`/api/music`)"
       - "traefik.http.middlewares.music-service-stripprefix.stripprefix.prefixes=/api/music"
       - "traefik.http.routers.music-service.middlewares=music-service-stripprefix"
       - "traefik.http.services.music-service.loadbalancer.server.port=8081"
+      # Configuración de health check para el balanceador
+      - "traefik.http.services.music-service.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.music-service.loadbalancer.healthcheck.interval=10s"
+      # Sticky sessions para uploads
+      - "traefik.http.services.music-service.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.music-service.loadbalancer.sticky.cookie.name=musicservice_session"
       - "traefik.http.routers.music-service.entrypoints=websecure"
       - "traefik.http.routers.music-service.tls=true"
     healthcheck:
@@ -233,13 +254,13 @@ services:
       start_period: 10s
 
   # ===============================
-  # 👤 User Service
+  # 👤 User Service (Escalable)
   # ===============================
   userservice:
     build:
       context: ./userservice
       dockerfile: Dockerfile
-    container_name: musicshare-userservice
+    # Removido container_name para permitir múltiples réplicas
     restart: unless-stopped
     depends_on:
       postgres:
@@ -261,23 +282,42 @@ services:
     networks:
       - backend_net
       - data_net
+    deploy:
+      replicas: 2  # Iniciar con 2 réplicas por defecto
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.userservice.rule=PathPrefix(`/api/users`)"
       - "traefik.http.middlewares.userservice-stripprefix.stripprefix.prefixes=/api/users"
       - "traefik.http.routers.userservice.middlewares=userservice-stripprefix"
       - "traefik.http.services.userservice.loadbalancer.server.port=8002"
+      # Configuración de health check para el balanceador
+      - "traefik.http.services.userservice.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.userservice.loadbalancer.healthcheck.interval=10s"
+      # Sticky sessions para mantener sesiones de usuario
+      - "traefik.http.services.userservice.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.userservice.loadbalancer.sticky.cookie.name=userservice_session"
       - "traefik.http.routers.userservice.entrypoints=websecure"
       - "traefik.http.routers.userservice.tls=true"
 
   # ===============================
-  # 💬 Social Service
+  # 💬 Social Service (Escalable)
   # ===============================
   social-service:
     build:
       context: ./socialservice
       dockerfile: Dockerfile
-    container_name: musicshare-social-service
+    # Removido container_name para permitir múltiples réplicas
     restart: unless-stopped
     depends_on:
       postgres-social:
@@ -290,12 +330,31 @@ services:
     networks:
       - backend_net
       - data_net
+    deploy:
+      replicas: 2  # Iniciar con 2 réplicas por defecto
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`) || PathPrefix(`/swagger-ui`) || PathPrefix(`/v3/api-docs`)"
       - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
       - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
       - "traefik.http.services.social-service.loadbalancer.server.port=8083"
+      # Configuración de health check para el balanceador
+      - "traefik.http.services.social-service.loadbalancer.healthcheck.path=/actuator/health"
+      - "traefik.http.services.social-service.loadbalancer.healthcheck.interval=10s"
+      # Sticky sessions para interacciones sociales
+      - "traefik.http.services.social-service.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.social-service.loadbalancer.sticky.cookie.name=socialservice_session"
       - "traefik.http.routers.social-service.entrypoints=websecure"
       - "traefik.http.routers.social-service.tls=true"
 
@@ -379,6 +438,41 @@ services:
       - "traefik.http.services.formulario-post-front.loadbalancer.server.port=80"
       - "traefik.http.routers.formulario-post-front.entrypoints=websecure"
       - "traefik.http.routers.formulario-post-front.tls=true"
+  # ===============================
+  # � Prometheus (Métricas unificadas)
+  # ===============================
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: musicshare_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - backend_net
+
+  # ===============================
+  # Grafana (Visualización con datasource Prometheus)
+  # ===============================
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: musicshare_grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3010:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - frontend_net
+      - backend_net
 
   # ===============================
   # 🐇 RabbitMQ + Notification Service
@@ -396,7 +490,7 @@ services:
     build:
       context: ./notificationservice
       dockerfile: Dockerfile
-    container_name: notificationservice
+    # Removido container_name para permitir múltiples réplicas
     depends_on:
       - rabbitmq
     environment:
@@ -405,6 +499,19 @@ services:
     networks:
       - backend_net
       - data_net
+    deploy:
+      replicas: 2  # Iniciar con 2 réplicas por defecto
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     labels:
       - "traefik.enable=true"
       # Router para la API REST
@@ -412,6 +519,12 @@ services:
       - "traefik.http.middlewares.notificationservice-stripprefix.stripprefix.prefixes=/api/notifications"
       - "traefik.http.routers.notificationservice-rest.middlewares=notificationservice-stripprefix"
       - "traefik.http.services.notificationservice.loadbalancer.server.port=8082"
+      # Configuración de health check para el balanceador
+      - "traefik.http.services.notificationservice.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.notificationservice.loadbalancer.healthcheck.interval=10s"
+      # Sticky sessions para WebSockets
+      - "traefik.http.services.notificationservice.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.notificationservice.loadbalancer.sticky.cookie.name=notificationservice_session"
       - "traefik.http.routers.notificationservice-rest.entrypoints=websecure"
       - "traefik.http.routers.notificationservice-rest.tls=true"
       # Router para WebSockets
@@ -439,4 +552,8 @@ volumes:
   postgres_social_data:
     driver: local
   postgres_relations_data:
+    driver: local
+  grafana_data:
+    driver: local
+  traefik_logs:
     driver: local
