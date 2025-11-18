@@ -218,6 +218,154 @@ Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo q
 Deployment View:
 ![Diagrama de despliegue](Diagrama_Despliegue.png)
 
+
+# Arquitectura de Despliegue – MusicShare
+
+Este documento describe la arquitectura física y el despliegue del ecosistema **MusicShare** utilizando contenedores Docker organizados dentro de una red interna. Cada microservicio, base de datos y componente de infraestructura se ejecuta de forma aislada, asegurando autonomía, escalabilidad y mantenibilidad.
+
+---
+
+## 🏗️ 1. Nodo Principal: Servidor Docker Host
+
+Toda la arquitectura se ejecuta sobre un **Servidor Docker Host**, que puede ser:
+
+- Linux / Windows / macOS
+- Máquina virtual (VM)
+- Infraestructura bare-metal
+- Instancia cloud
+
+Este nodo ejecuta todos los contenedores del sistema.
+
+---
+
+## 🌐 2. Red Interna Docker
+
+Se utiliza una red interna tipo bridge llamada:
+
+Esta red permite:
+
+- Comunicación entre microservicios  
+- Aislamiento de tráfico  
+- Control de seguridad interno  
+
+Todos los contenedores del ecosistema están dentro de esta red.
+
+---
+
+## 🚪 3. API Gateway (Traefik)
+
+**Contenedor:** `gateway`  
+**Tecnología:** Traefik  
+
+**Responsabilidades:**
+
+- Punto único de entrada al sistema  
+- Enrutamiento dinámico hacia microservicios  
+- Manejo de certificados  
+- Balanceo básico de carga  
+- Seguridad, CORS, logging  
+
+---
+
+## 🎨 4. Frontend Web
+
+**Contenedor:** `musicshare-frontend`  
+**Tecnología:** NGINX  
+**Puerto:** 80  
+
+Sirve la interfaz visual de MusicShare y se expone a través del Gateway.
+
+---
+
+## ⚙️ 5. Microservicios Backend
+
+Cada microservicio se despliega en contenedores independientes, con sus propias tecnologías y puertos.
+
+### **User Service**
+- **Contenedor:** `musicshare-userservice`
+- **Tecnología:** Python 3.11
+- **Puerto:** 8002
+
+### **Music Service**
+- **Contenedor:** `musicshare-music-service`
+- **Tecnología:** Go 1.24
+- **Puerto:** 8081
+
+### **Social Service**
+- **Contenedor:** `musicshare-social-service`
+- **Tecnología:** Java JDK 21
+- **Puerto:** 8083
+
+### **Metadata Service**
+- **Contenedor:** `musicshare-metadata-service`
+- **Tecnología:** Python 3.11
+- **Puerto:** 50051
+
+### **Notification Service**
+- **Contenedor:** `notificationservice`
+- **Tecnología:** Python 3.9
+- **Puerto:** 8082
+
+---
+
+## 🗄️ 6. Bases de Datos
+
+Cada microservicio cuenta con su propia base de datos, garantizando **independencia y bajo acoplamiento**.
+
+### PostgreSQL
+- **Contenedor:** `musicshare-postgres`
+  - Base de datos: `user_db`
+- **Contenedor:** `musicshare-postgres_social`
+  - Base de datos: `social_db`
+
+### MongoDB
+- **Contenedor:** `musicshare-mongodb`
+  - Base de datos: `music_db`
+
+---
+
+## 🔗 7. Conexiones y Relaciones
+
+- El **API Gateway** enruta peticiones hacia:
+  - Frontend  
+  - User Service  
+  - Music Service  
+  - Social Service  
+  - Metadata Service  
+  - Notification Service  
+
+- Cada microservicio se comunica directamente con su base de datos.
+- La red interna `musicshare-network` permite comunicación entre contenedores sin exponer puertos innecesarios al exterior.
+
+---
+
+## 📦 8. Artefactos Externos
+
+En la arquitectura se muestran los artefactos que generan cada microservicio:
+
+- `social_service.jar` (Java)
+- `metadata_service` (Python)
+- `notification_service` (Python)
+
+Estos artefactos son empaquetados previamente y utilizados para construir los contenedores.
+
+---
+
+## 🧩 Resumen General
+
+La arquitectura MusicShare está basada en microservicios altamente desacoplados, desplegados sobre Docker y organizados en una red interna. Sus características:
+
+- Gateway centralizado (Traefik)
+- Microservicios independientes
+- Bases de datos aisladas por servicio
+- Red Docker interna segura
+- Alta modularidad
+- Preparada para escalar o migrar a Kubernetes
+
+---
+
+
+
 ## Decomposition Structure
 ![Diagrama de descomposición de Dominio](general.png)
 
