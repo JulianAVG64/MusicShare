@@ -380,7 +380,7 @@ Registro de eventos relevantes para los usuarios.
   - Escenario 4: Se implementó el patrón de [Access Token Pattern](#-access-token-pattern) para manejar sesiones y autenticación en los microservicios.
 - Escenarios de seguridad:
     - Escenario 1: Se implementó el patrón de [Load Balancer](#balanceo-de-carga-y-escalado) y se realizaron pruebas de estrés a tres servicios.
-    - Escenario 2: Se implementó el patrón de [Load Balancer](#balanceo-de-carga-y-escalado) ajusta el número de recursos computacionales.
+    - Escenario 2: Se implementó el patrón de [Auto Scaling](#balanceo-de-carga-y-escalado) ajusta el número de recursos computacionales.
 
 ---
 
