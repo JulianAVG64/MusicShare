@@ -379,8 +379,8 @@ Registro de eventos relevantes para los usuarios.
   - Escenario 3: Se implementó el patrón de [Network Segmentation Pattern](#-network-segmentation-pattern) para aislar las capas de la aplicación.  
   - Escenario 4: Se implementó el patrón de [Access Token Pattern](#-access-token-pattern) para manejar sesiones y autenticación en los microservicios.
 - Escenarios de seguridad:
-    - Escenario 1: Se implementó el patrón de [Load Balancer](#load-balancer-pattern) y se realizaron pruebas de estrés a tres servicios.
-    - Escenario 2: Se implementó el patrón de [Auto Scaling](#auto-scaling-pattern) ajusta el número de recursos computacionales.
+    - Escenario 1: Se implementó el patrón de [Load Balancer](#balanceo-de-carga-y-escalado) y se realizaron pruebas de estrés a tres servicios.
+    - Escenario 2: Se implementó el patrón de [Load Balancer](#balanceo-de-carga-y-escalado) ajusta el número de recursos computacionales.
 
 ---
 
@@ -892,7 +892,9 @@ Accede al dashboard de Traefik para ver:
 http://localhost:8080/dashboard/
 ```
 
-### ⚖️ Balanceo de Carga y Escalado
+---
+
+# Balanceo de Carga y Escalado
 
 MusicShare implementa **balanceo de carga automático** con Traefik. Los servicios backend se ejecutan con **múltiples réplicas** para alta disponibilidad y mejor rendimiento.
 
@@ -986,9 +988,7 @@ nuevo-servicio:
 
 ---
 
----
-
-### 🧩 Secure Channel Pattern (TLS/HTTPS con Traefik)
+# 🧩 Secure Channel Pattern (TLS/HTTPS con Traefik)
 
 Para proteger la comunicación entre el cliente y los servicios, se implementó el **Secure Channel Pattern** mediante **Traefik** actuando como *terminador TLS*.
 Todas las conexiones externas ahora usan HTTPS con certificados locales.
@@ -1177,10 +1177,3 @@ Con el **Access Token Pattern**, MusicShare garantiza:
 * Sesiones sin estado (**stateless authentication**).
 * Extracción confiable del `userId` para acciones como subir posts, comentarios o likes.
 * Un modelo de seguridad consistente, escalable y compatible con arquitecturas distribuidas.
-
----
-
-# Load Balancer Pattern
-
----
-# Auto Scaling Pattern
