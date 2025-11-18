@@ -217,6 +217,7 @@ Deployment View:
 
 ## Decomposition Structure
 ![Diagrama de descomposición de Dominio](general.png)
+
 ## Description 
 🎵 Estructura de Descomposición de Dominio — MusicShare
 Dominio Raíz: MusicShare
@@ -224,15 +225,41 @@ Dominio Raíz: MusicShare
 Descripción general:
 MusicShare es una plataforma colaborativa para compartir, reproducir y descubrir música. El sistema está diseñado bajo una arquitectura basada en microservicios, donde cada dominio encapsula una funcionalidad específica, comunicándose entre sí mediante un API Gateway.
 Su estructura promueve la escalabilidad, la independencia de desarrollo y el despliegue modular de componentes.
+Cliente para funcionalidades principales
+
+**frontend/** - Interfaz gráfica para la interacción de usuario con los demás servicios 
+
+**frontendSSR/** - Cliente con Server-Side Rendering que carga el formulario para enviar al cliente para crear los POST 
+
+**metadataservice/** - Servicio de Metadatos - Gestiona información sobre canciones, álbumes, artistas
+
+**musicservice/** - Servicio de Música Principal - Guarda la música para completar el post y se comunica con MetadataService
+
+**notificationservice/** - Servicio de Notificaciones
+
+**userservice/** - Servicio de Usuarios - Gestión de usuarios, autenticación y autorización
+
+**socialservice/** - Servicio Social - Funcionalidades sociales: comentarios, likes, subir POSTs, seguimiento entre usuarios, feeds de actividad
+
+**traefik/** - Reverse Proxy, Load Balancer, API Gateway para el sistema de microservicios
+
+**script/** - Scripts de Operaciones - Automatización de despliegues, backups, mantenimiento
+
+
+
+
+
+
+![traefik](traefik.png)
+
+
+
+
+
+### 1. frontend
 
 ![Frontend](frontend.png)
-![FrontendSSR](frontendSSR.png)
-![notificationservice](notificationservice.png)
-![musicservice](musicservice.png)
-![traefik](traefik.png)
-![metadataservice](metadataservice.png)
 
-### 1. web_frontend
 
 - **Responsabilidad principal**:
   - Proporcionar la interfaz gráfica principal para los usuarios finales.
@@ -244,16 +271,21 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Comunicación directa con el API Gateway para consumir servicios REST.
   - Implementación adaptable para navegadores web.
 
-### 2. post_frontend
+### 2. frontendSSR
+
+![FrontendSSR](frontendSSR.png)
+
 
 - **Responsabilidad principal**:
-  - Gestionar la interfaz y funcionalidad relacionada con la publicación y visualización de contenido social (por ejemplo, publicaciones, comentarios o interacciones).
+  - Cliente con Server-Side Rendering que carga el formulario para enviar al cliente para crear los POST
 - **Funciones clave:**
-  - Creación de publicaciones relacionadas con canciones o playlists.
-  - Interacción entre usuarios mediante comentarios o reacciones.
-  - Integración directa con el SocialService.
+  - Permite arrastar canciones
+  - Insersión de Tags, 
+  - Definir si es de tipo de publica, agrega descripción y hashtags
 
 ### 3. SocialService
+
+
 
 - **Responsabilidad principal:**
   - Encargado del componente social de la plataforma. Administra las interacciones, conexiones y actividades entre los usuarios.
@@ -264,7 +296,9 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Integración con el NotificationService para alertas sociales.
   - Conexión con UserService para obtener perfiles.
 
-4. MusicService
+### 4. MusicService
+
+![musicservice](musicservice.png)
 
 - **Responsabilidad principal:**
   - Administrar los recursos musicales y su ciclo de vida dentro del sistema.
@@ -275,7 +309,12 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Integración con el MetadataService para obtener información descriptiva.
   - Exposición de endpoints para streaming o descarga.
 
-### 5. APIGateway
+### 5. Traekik
+
+![traefik](traefik.png)
+
+
+## Apigateway
 - **Responsabilidad principal:**
   - Centralizar y gestionar todas las solicitudes externas hacia los microservicios.
   - Actúa como punto único de entrada al ecosistema MusicShare.
@@ -287,6 +326,8 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Comunicación entre frontends y los servicios internos.
 
 ### 6. MetadataService
+
+![metadataservice](metadataservice.png)
 
 - **Responsabilidad principal:**
   - Gestionar y proveer información descriptiva asociada al contenido musical.
@@ -308,6 +349,8 @@ Su estructura promueve la escalabilidad, la independencia de desarrollo y el des
   - Almacenamiento seguro de credenciales (posiblemente con JWT o OAuth2).
 
 ### 8. NotificationService
+
+![notificationservice](notificationservice.png)
 
 - **Responsabilidad principal:**
   - Coordinar y enviar notificaciones a los usuarios según eventos del sistema.
