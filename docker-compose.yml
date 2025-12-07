@@ -328,6 +328,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: music_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
+      - frontend_net
       - backend_net
       - data_net
     deploy:
@@ -345,9 +346,8 @@ services:
         max_attempts: 3
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=musicshare_frontend_net"
       - "traefik.http.routers.social-service.rule=PathPrefix(`/api/social`) || PathPrefix(`/swagger-ui`) || PathPrefix(`/v3/api-docs`)"
-      - "traefik.http.middlewares.social-service-stripprefix.stripprefix.prefixes=/api/social"
-      - "traefik.http.routers.social-service.middlewares=social-service-stripprefix"
       - "traefik.http.services.social-service.loadbalancer.server.port=8083"
       # Configuración de health check para el balanceador
       - "traefik.http.services.social-service.loadbalancer.healthcheck.path=/actuator/health"
@@ -401,23 +401,25 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=musicshare_frontend_net"
       - "traefik.http.routers.next-ssr.rule=PathPrefix(`/upload`)"
-      - "traefik.http.routers.next-ssr.priority=2"
+      - "traefik.http.routers.next-ssr.priority=100"
       - "traefik.http.services.next-ssr.loadbalancer.server.port=3000"
       - "traefik.http.routers.next-ssr.entrypoints=websecure"
       - "traefik.http.routers.next-ssr.tls=true"
+      - "traefik.http.middlewares.next-ssr-stripprefix.stripprefix.prefixes=/upload"
+      - "traefik.http.routers.next-ssr.middlewares=next-ssr-stripprefix"
+      # Route Next.js static assets under /_next to this service
+      - "traefik.http.routers.next-ssr-assets.rule=PathPrefix(`/_next`)"
+      - "traefik.http.routers.next-ssr-assets.entrypoints=websecure"
+      - "traefik.http.routers.next-ssr-assets.tls=true"
+      - "traefik.http.routers.next-ssr-assets.priority=110"
     depends_on:
       - frontend
     networks:
       - frontend_net
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   # ===============================
   # 🌐 MicroFrontend (Post)

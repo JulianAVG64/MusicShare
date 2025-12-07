@@ -1,6 +1,4 @@
-
 "use client";
-
 
 import { useState, useRef } from "react";
 import {
@@ -13,7 +11,7 @@ import {
   XCircle,
   Sparkles,
 } from "lucide-react";
-import Toast from "./components/Toast"
+import Toast from "../components/Toast";
 
 type Props = { theme: "cupcake" | "dark" };
 
@@ -35,7 +33,7 @@ export default function UploadMusic({ theme }: Props) {
   }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const USER_ID = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+  const USER_ID = 1;
 
   const showMessage = (msg: string, error = false) => {
     setMessage(msg);
@@ -73,7 +71,7 @@ export default function UploadMusic({ theme }: Props) {
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", selectedFile);
-    formData.append("user_id", USER_ID);
+    formData.append("user_id", String(USER_ID));
     formData.append("is_public", isPublic.toString());
     formData.append("tags", tags);
 
@@ -121,7 +119,7 @@ export default function UploadMusic({ theme }: Props) {
 
     try {
       const response = await fetch(
-        "https://localhost/api/social/api/social/posts",
+        "https://localhost/api/social/posts",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
