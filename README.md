@@ -171,10 +171,10 @@ C&C View:
   - Conexión MusicService con MetadataService
 
 ## Layered Structure
-##### Layered View:
+### Layered View:
 ![Diagrama de capas](Diagrama_Capas_2.png)
 
-##### Diagrama de capas de la capa de negocios:
+### Vista de capas de la capa de negocios:
 
 ![Diagrama de capas de negocios](Capas_Business.png)
 
