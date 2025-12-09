@@ -1,8 +1,19 @@
 #!/bin/sh
 set -e
 
-# Imprime la variable para depuración
-echo "API_URL is: $API_URL"
+# Define las variables de entorno por defecto si no están presentes
+GRAPHQL_ENDPOINT="${GRAPHQL_ENDPOINT:-/graphql}"
+
+echo "Setting GRAPHQL_ENDPOINT to: $GRAPHQL_ENDPOINT"
+
+# Genera el archivo env-config.js que será cargado por el HTML
+cat > /usr/share/nginx/html/env-config.js << EOF
+window.__ENV__ = {
+  GRAPHQL_ENDPOINT: '$GRAPHQL_ENDPOINT'
+};
+EOF
+
+echo "env-config.js generated successfully"
 
 # Define la plantilla y el archivo de salida
 TEMPLATE_FILE="/etc/nginx/conf.d/default.conf.template"

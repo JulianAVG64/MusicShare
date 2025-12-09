@@ -9,3 +9,6 @@ resources:
   - hpa.yaml
   - frontend-config.yaml
   - cert-manager-issuer.yaml
+  - spotify-secret.yaml
+  - userservice-secret.yaml
+  - postgres-init-config.yaml

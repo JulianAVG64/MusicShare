@@ -76,6 +76,14 @@ rules:
       - list
       - watch
   - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - ""
     resourceNames:
       - ingress-controller-leader
@@ -91,6 +99,18 @@ rules:
     verbs:
       - get
       - create
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
   - apiGroups:
       - ""
     resources:

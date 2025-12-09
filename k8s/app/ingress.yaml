@@ -10,7 +10,6 @@ metadata:
   namespace: musicshare
   annotations:
     # Configuración NGINX
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
@@ -37,14 +36,32 @@ metadata:
     
     # Health check
     nginx.ingress.kubernetes.io/proxy-upstream-timeout: "600"
+
+    # Anotación para cert-manager
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+
+    # Redirección a /login si no está autenticado
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri = '/' and $cookie_auth_token = '') {
+        return 302 /login;
+      }
     
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - localhost
+    secretName: musicshare-tls
   rules:
-    # UserService
-    - host: ""
-      http:
+    - http:
         paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
           - path: /api/users
             pathType: Prefix
             backend:
@@ -52,18 +69,6 @@ spec:
                 name: userservice
                 port:
                   number: 8002
-          - path: /api/users/
-            pathType: Prefix
-            backend:
-              service:
-                name: userservice
-                port:
-                  number: 8002
-    
-    # MusicService
-    - host: ""
-      http:
-        paths:
           - path: /api/music
             pathType: Prefix
             backend:
@@ -71,18 +76,6 @@ spec:
                 name: musicservice
                 port:
                   number: 8081
-          - path: /api/music/
-            pathType: Prefix
-            backend:
-              service:
-                name: musicservice
-                port:
-                  number: 8081
-    
-    # SocialService
-    - host: ""
-      http:
-        paths:
           - path: /api/social
             pathType: Prefix
             backend:
@@ -90,14 +83,6 @@ spec:
                 name: social-service
                 port:
                   number: 8083
-          - path: /api/social/
-            pathType: Prefix
-            backend:
-              service:
-                name: social-service
-                port:
-                  number: 8083
-          # Swagger UI para Social Service (sin rewrite)
           - path: /swagger-ui
             pathType: Prefix
             backend:
@@ -112,11 +97,6 @@ spec:
                 name: social-service
                 port:
                   number: 8083
-    
-    # NotificationService (REST)
-    - host: ""
-      http:
-        paths:
           - path: /api/notifications
             pathType: Prefix
             backend:
@@ -124,18 +104,6 @@ spec:
                 name: notificationservice
                 port:
                   number: 8082
-          - path: /api/notifications/
-            pathType: Prefix
-            backend:
-              service:
-                name: notificationservice
-                port:
-                  number: 8082
-    
-    # NotificationService (WebSocket)
-    - host: ""
-      http:
-        paths:
           - path: /ws
             pathType: Prefix
             backend:
@@ -143,18 +111,6 @@ spec:
                 name: notificationservice
                 port:
                   number: 8082
-          - path: /ws/
-            pathType: Prefix
-            backend:
-              service:
-                name: notificationservice
-                port:
-                  number: 8082
-    
-    # Next.js SSR (music-upload)
-    - host: ""
-      http:
-        paths:
           - path: /upload
             pathType: Prefix
             backend:
@@ -162,18 +118,6 @@ spec:
                 name: music-upload-ssr
                 port:
                   number: 3000
-          - path: /upload/
-            pathType: Prefix
-            backend:
-              service:
-                name: music-upload-ssr
-                port:
-                  number: 3000
-    
-    # Formulario Post Frontend
-    - host: ""
-      http:
-        paths:
           - path: /formulario-post
             pathType: Prefix
             backend:
@@ -181,13 +125,13 @@ spec:
                 name: formulario-post
                 port:
                   number: 80
-          - path: /formulario-post/
+          - path: /graphql
             pathType: Prefix
             backend:
               service:
-                name: formulario-post
+                name: apigateway
                 port:
-                  number: 80
+                  number: 4000
 
 ---
 # ConfigMap para rewrites personalizados (en NGINX)

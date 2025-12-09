@@ -24,8 +24,15 @@ spec:
           env:
             - name: POSTGRES_HOST
               value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
             - name: MONGODB_URI
               value: "mongodb://admin:password123@mongodb:27017/musicshare?authSource=admin"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: userservice-secret
+                  key: secret_key
 ---
 apiVersion: v1
 kind: Service
@@ -107,6 +114,17 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 50051
+          env:
+            - name: SPOTIFY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: spotify-credentials
+                  key: spotify_client_id
+            - name: SPOTIFY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: spotify-credentials
+                  key: spotify_client_secret
 ---
 apiVersion: v1
 kind: Service
@@ -198,4 +216,48 @@ spec:
   ports:
     - port: 8082
       targetPort: 8082
+  type: ClusterIP
+
+---
+# Minimal placeholder API Gateway (workaround temporal)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway
+  namespace: musicshare
+  labels:
+    app: apigateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+        - name: apigateway
+          # Imagen pequeña que responde con texto. Sustituir por gateway real.
+          image: hashicorp/http-echo:0.2.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-listen=:4000"
+            - "-text={}"
+          ports:
+            - containerPort: 4000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apigateway
+  namespace: musicshare
+spec:
+  selector:
+    app: apigateway
+  ports:
+    - port: 4000
+      targetPort: 4000
   type: ClusterIP
