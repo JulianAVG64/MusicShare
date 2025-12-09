@@ -234,10 +234,10 @@ C&C View:
   - Conexión MusicService con MetadataService
 
 ## Layered Structure
-##### Layered View:
+### Layered View:
 ![Diagrama de capas](Diagrama_Capas_2.png)
 
-##### Diagrama de capas de la capa de negocios:
+### Vista de capas de la capa de negocios:
 
 ![Diagrama de capas de negocios](Capas_Business.png)
 
@@ -279,7 +279,7 @@ Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo q
 
 ## Deployment Structure
 Deployment View:
-![Diagrama de despliegue](Diagrama_Despliegue.png)
+![Vista de despliegue](Despliegue_segmentado.png)
 
 
 # Arquitectura de Despliegue – MusicShare
@@ -301,17 +301,18 @@ Este nodo ejecuta todos los contenedores del sistema.
 
 ---
 
-## 🌐 2. Red Interna Docker
+## 🌐 2. Redes
 
-Se utiliza una red interna tipo bridge llamada:
+Esta vista de despliegue muestra cómo los componentes de MusicShare se ejecutan dentro de un host Docker y se organizan mediante una segmentación de red basada en capas. La infraestructura se divide en tres subredes independientes:
 
-Esta red permite:
+Subred de Presentación (frontend_net): aloja los servicios de interfaz de usuario y el API Gateway (Traefik), encargados de recibir las solicitudes externas.
 
-- Comunicación entre microservicios  
-- Aislamiento de tráfico  
-- Control de seguridad interno  
+Subred de Negocio (backend_net): contiene los microservicios principales de la plataforma, responsables de la lógica de negocio.
 
-Todos los contenedores del ecosistema están dentro de esta red.
+Subred de Datos (data_net): agrupa los servicios de persistencia como PostgreSQL, MongoDB y otros recursos de datos.
+
+La comunicación entre redes está estrictamente controlada:
+Traefik conecta la capa de presentación con la de negocio, mientras que los microservicios acceden a las bases de datos a través de la red de datos siguiendo el principio de mínimo privilegio. Esta segmentación mejora la seguridad, el aislamiento y la mantenibilidad del sistema.
 
 ---
 
@@ -421,7 +422,7 @@ La arquitectura MusicShare está basada en microservicios altamente desacoplados
 - Gateway centralizado (Traefik)
 - Microservicios independientes
 - Bases de datos aisladas por servicio
-- Red Docker interna segura
+- Redes segmentadas
 - Alta modularidad
 - Preparada para escalar o migrar a Kubernetes
 
@@ -444,7 +445,7 @@ Cliente para funcionalidades principales
 
 ### 1. frontend
 
-![Frontend](frontend.png)
+![Frontend](frontendcorreccion.png)
 
 
 - **Responsabilidad principal**:
@@ -459,7 +460,7 @@ Cliente para funcionalidades principales
 
 ### 2. frontendSSR
 
-![FrontendSSR](frontendSSR.png)
+![FrontendSSR](frontendSSRcorreccion.png)
 
 
 - **Responsabilidad principal**:
@@ -471,7 +472,7 @@ Cliente para funcionalidades principales
 
 ### 3. SocialService
 
-![socialservice](socialservice.png)
+![socialservice](socialservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Encargado del componente social de la plataforma. Administra las interacciones, conexiones y actividades entre los usuarios.
@@ -484,7 +485,7 @@ Cliente para funcionalidades principales
 
 ### 4. MusicService
 
-![musicservice](musicservice.png)
+![musicservice](musicservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Administrar los recursos musicales y su ciclo de vida dentro del sistema.
@@ -497,7 +498,7 @@ Cliente para funcionalidades principales
 
 ### 5. Traekik
 
-![traefik](traefik.png)
+![traefik](traefikcorreccion.png)
 
 
 ## Apigateway
@@ -520,7 +521,7 @@ Cliente para funcionalidades principales
 
 ### 6. MetadataService
 
-![metadataservice](metadataservice.png)
+![metadataservice](metadataservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Gestionar y proveer información descriptiva asociada al contenido musical.
@@ -533,7 +534,7 @@ Cliente para funcionalidades principales
 
 ### 7. UserService
 
-![userservice](userservice.png)
+![userservice](userservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Gestionar la información y autenticación de los usuarios del sistema.
@@ -546,7 +547,7 @@ Cliente para funcionalidades principales
 
 ### 8. NotificationService
 
-![notificationservice](notificationservice.png)
+![notificationservice](notificationservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Coordinar y enviar notificaciones a los usuarios según eventos del sistema.
