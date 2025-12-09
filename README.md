@@ -381,7 +381,7 @@ Cliente para funcionalidades principales
 
 ### 1. frontend
 
-![Frontend](frontend.png)
+![Frontend](frontendcorreccion.png)
 
 
 - **Responsabilidad principal**:
@@ -396,7 +396,7 @@ Cliente para funcionalidades principales
 
 ### 2. frontendSSR
 
-![FrontendSSR](frontendSSR.png)
+![FrontendSSR](frontendSSRcorreccion.png)
 
 
 - **Responsabilidad principal**:
@@ -408,7 +408,7 @@ Cliente para funcionalidades principales
 
 ### 3. SocialService
 
-![socialservice](socialservice.png)
+![socialservice](socialservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Encargado del componente social de la plataforma. Administra las interacciones, conexiones y actividades entre los usuarios.
@@ -421,7 +421,7 @@ Cliente para funcionalidades principales
 
 ### 4. MusicService
 
-![musicservice](musicservice.png)
+![musicservice](musicservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Administrar los recursos musicales y su ciclo de vida dentro del sistema.
@@ -434,7 +434,7 @@ Cliente para funcionalidades principales
 
 ### 5. Traekik
 
-![traefik](traefik.png)
+![traefik](traefikcorreccion.png)
 
 
 ## Apigateway
@@ -457,7 +457,7 @@ Cliente para funcionalidades principales
 
 ### 6. MetadataService
 
-![metadataservice](metadataservice.png)
+![metadataservice](metadataservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Gestionar y proveer información descriptiva asociada al contenido musical.
@@ -470,7 +470,7 @@ Cliente para funcionalidades principales
 
 ### 7. UserService
 
-![userservice](userservice.png)
+![userservice](userservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Gestionar la información y autenticación de los usuarios del sistema.
@@ -483,7 +483,7 @@ Cliente para funcionalidades principales
 
 ### 8. NotificationService
 
-![notificationservice](notificationservice.png)
+![notificationservice](notificationservicecorreccion.png)
 
 - **Responsabilidad principal:**
   - Coordinar y enviar notificaciones a los usuarios según eventos del sistema.
