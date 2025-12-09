@@ -216,7 +216,7 @@ Las relaciones entre capas son estrictamente descendentes (allowed-to-use), lo q
 
 ## Deployment Structure
 Deployment View:
-![Diagrama de despliegue](Diagrama_Despliegue.png)
+![Vista de despliegue](Despliegue_segmentado.png)
 
 
 # Arquitectura de Despliegue – MusicShare
@@ -238,17 +238,18 @@ Este nodo ejecuta todos los contenedores del sistema.
 
 ---
 
-## 🌐 2. Red Interna Docker
+## 🌐 2. Redes
 
-Se utiliza una red interna tipo bridge llamada:
+Esta vista de despliegue muestra cómo los componentes de MusicShare se ejecutan dentro de un host Docker y se organizan mediante una segmentación de red basada en capas. La infraestructura se divide en tres subredes independientes:
 
-Esta red permite:
+Subred de Presentación (frontend_net): aloja los servicios de interfaz de usuario y el API Gateway (Traefik), encargados de recibir las solicitudes externas.
 
-- Comunicación entre microservicios  
-- Aislamiento de tráfico  
-- Control de seguridad interno  
+Subred de Negocio (backend_net): contiene los microservicios principales de la plataforma, responsables de la lógica de negocio.
 
-Todos los contenedores del ecosistema están dentro de esta red.
+Subred de Datos (data_net): agrupa los servicios de persistencia como PostgreSQL, MongoDB y otros recursos de datos.
+
+La comunicación entre redes está estrictamente controlada:
+Traefik conecta la capa de presentación con la de negocio, mientras que los microservicios acceden a las bases de datos a través de la red de datos siguiendo el principio de mínimo privilegio. Esta segmentación mejora la seguridad, el aislamiento y la mantenibilidad del sistema.
 
 ---
 
@@ -358,7 +359,7 @@ La arquitectura MusicShare está basada en microservicios altamente desacoplados
 - Gateway centralizado (Traefik)
 - Microservicios independientes
 - Bases de datos aisladas por servicio
-- Red Docker interna segura
+- Redes segmentadas
 - Alta modularidad
 - Preparada para escalar o migrar a Kubernetes
 
