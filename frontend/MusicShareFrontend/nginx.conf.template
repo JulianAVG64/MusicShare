@@ -4,20 +4,16 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Servir archivos estáticos con cache
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # SPA rewrite: envía todas las rutas no encontradas a index.html
     location / {
-        try_files $uri /index.html;
-    }
-
-    location /api/users {
-        proxy_pass http://${USERSERVICE_URL}:8002;
-    }
-
-    location /api/music {
-        proxy_pass http://${MUSICSERVICE_URL}:8081;
-    }
-
-    location /api/social {
-        proxy_pass http://${SOCIALSERVICE_URL}:8083;
+        try_files $uri $uri/ /index.html;
     }
 
     access_log off;

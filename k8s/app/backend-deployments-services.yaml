@@ -110,7 +110,7 @@ spec:
     spec:
       containers:
         - name: metadata-service
-          image: musicshare/metadataservice:latest
+          image: musicshare/metadata-service:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 50051
@@ -159,7 +159,7 @@ spec:
     spec:
       containers:
         - name: social-service
-          image: musicshare/socialservice:latest
+          image: musicshare/social-service:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8083

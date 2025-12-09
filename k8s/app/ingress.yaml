@@ -111,27 +111,7 @@ spec:
                 name: notificationservice
                 port:
                   number: 8082
-          - path: /upload
-            pathType: Prefix
-            backend:
-              service:
-                name: music-upload-ssr
-                port:
-                  number: 3000
-          - path: /formulario-post
-            pathType: Prefix
-            backend:
-              service:
-                name: formulario-post
-                port:
-                  number: 80
-          - path: /graphql
-            pathType: Prefix
-            backend:
-              service:
-                name: apigateway
-                port:
-                  number: 4000
+
 
 ---
 # ConfigMap para rewrites personalizados (en NGINX)
