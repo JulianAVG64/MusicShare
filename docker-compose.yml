@@ -32,10 +32,6 @@
 # - Los volúmenes de base de datos se han dejado como `emptyDir` en los manifiestos de ejemplo;
 #   para producción sustituir por `PersistentVolumeClaim` y `StorageClass` adecuados.
 #
-# Si quieres, puedo:
-# - Convertir cada servicio a `StatefulSet` / PVC donde corresponda (DBs).
-# - Generar `Ingress` adicional o configurar Traefik con `IngressRoute` CRDs y certificados TLS.
-# - Construir y publicar las imágenes Docker y ajustar los manifiestos con los tags resultantes.
 
 ## Nota
 Este archivo `docker-compose.yml` se conserva como guía informativa; el despliegue objetivo en
