@@ -2,7 +2,7 @@ export default function UploadMusicSSR() {
   return (
     <div style={{ width: "100%", height: "100vh", border: "none" }}>
       <iframe
-        src="https://localhost/upload"
+        src="/upload"
         title="UploadMusic"
         style={{
           width: "100%",

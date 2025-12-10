@@ -1,3 +1,69 @@
+# MusicShare - Red Social Musical
+
+## 🚀 Despliegue en Kubernetes
+
+**ACTUALIZACIÓN 2024**: Se ha migrado de **Traefik** a **NGINX Ingress Controller** para mejor estabilidad y compatibilidad con Kubernetes estándar.
+
+### Arquitectura de Despliegue
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       INTERNET                              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                ┌──────────▼──────────┐
+                │  AWS/GCP LoadBalancer│
+                │  (IP Pública)       │
+                └──────────┬──────────┘
+                           │
+         ┌─────────────────┴──────────────────┐
+         │                                    │
+    ┌────▼────────┐           ┌──────────────▼──────┐
+    │   Frontend   │           │   NGINX Ingress     │
+    │  (React)     │           │   (API Gateway)     │
+    │  3 replicas  │           │   2 replicas        │
+    └──────────────┘           └──────────┬──────────┘
+                                           │
+         ┌─────────────────────────────────┼─────────────────────────────┐
+         │                                 │                             │
+    ┌────▼──────┐  ┌──────────┐  ┌────────▼───────┐  ┌─────────────────▼──┐
+    │   User     │  │  Music   │  │   Social       │  │  Notification      │
+    │  Service   │  │ Service  │  │   Service      │  │  Service           │
+    │ :8002      │  │ :8081    │  │  :8083         │  │  :8082 (WebSocket) │
+    │ 2-6 replicas│  │2-6 repli │  │ 2-5 replicas  │  │ 2-6 replicas      │
+    └────────────┘  └──────────┘  └────────────────┘  └────────────────────┘
+```
+
+### 📚 Documentación de Despliegue
+
+- **[DEPLOYMENT_ARCHITECTURE.md](DEPLOYMENT_ARCHITECTURE.md)** - Arquitectura general y componentes
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Guía paso a paso para desplegar
+- **[MIGRATION_TRAEFIK_TO_NGINX.md](MIGRATION_TRAEFIK_TO_NGINX.md)** - Migración desde Traefik
+- **[LOAD_BALANCING.md](LOAD_BALANCING.md)** - Detalles de balanceo de carga
+- **[APIGateway.md](APIGateway.md)** - Configuración del API Gateway
+
+### ⚡ Despliegue Rápido
+
+```bash
+# 1. Crear namespace
+kubectl create namespace musicshare
+
+# 2. Instalar NGINX Ingress Controller + Cert-manager
+kubectl apply -k k8s/base/
+
+# 3. Desplegar MusicShare
+kubectl apply -k k8s/app/
+
+# 4. Obtener IPs
+FRONTEND_IP=$(kubectl get svc -n musicshare frontend-loadbalancer -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+NGINX_IP=$(kubectl get svc -n ingress-nginx nginx-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+echo "Frontend: http://$FRONTEND_IP"
+echo "API Gateway: http://$NGINX_IP"
+```
+
+---
+
 # Project: Prototype 1 - Simple Architectural Structure
 # MusicShare - Red Social Musical
 ## Equipo
@@ -22,9 +88,6 @@
 # MusicShare - Red Social Musical
 ## Functional Requirements
 ### RF01 - Gestión de Usuarios
-- El sistema debe permitir el registro de usuarios con email/username y contraseña
-- El sistema debe permitir el login y logout de usuarios
-- El sistema debe permitir crear y editar perfiles básicos (foto, nombre)
 ### RF02 - Subida y Gestión de Música
 - El sistema debe permitir subir archivos de audio (MP3, WAV) al cloud storage
 - El sistema debe permitir agregar metadatos básicos a las pistas (título, artista, género)
