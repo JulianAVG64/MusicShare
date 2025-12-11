@@ -140,7 +140,7 @@ kubectl get svc -n ingress-nginx -w
 
 # Obtener la IP externa una vez que esté asignada
 $INGRESS_IP = kubectl get svc -n ingress-nginx nginx-ingress-ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-echo "La aplicación es accesible en: http://$INGRESS_IP"
+echo "La aplicación es accesible en: http://$INGRESS_IP" '
 echo "API Gateway: http://$INGRESS_IP/api/users/health"
 ```
 

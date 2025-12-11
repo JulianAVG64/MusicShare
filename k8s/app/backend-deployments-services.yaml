@@ -52,7 +52,7 @@ spec:
           image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
           command:
             - "/cloud_sql_proxy"
-            - "-instances=musicshare-480712:us-central1:ms111sqlcp:5432"
+            - "-instances=musicshare-480712:us-central1:ms111sql=tcp:5432"
             - "-credential_file=/secrets/cloudsql/credentials.json"
           securityContext:
             runAsUser: 2
@@ -184,7 +184,7 @@ metadata:
   labels:
     app: social-service
 spec:
-  replicas: 2
+  replicas: 1  # Dejémoslo en 1 por ahora para ahorrar recursos
   selector:
     matchLabels:
       app: social-service
@@ -193,6 +193,10 @@ spec:
       labels:
         app: social-service
     spec:
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "postgres"
       containers:
         - name: social-service
           image: us-central1-docker.pkg.dev/musicshare-480712/musicshare-docker/social-service:latest
@@ -200,22 +204,59 @@ spec:
           ports:
             - containerPort: 8083
           env:
-            - name: DB_HOST
-              value: "127.0.0.1"
-            - name: DB_PORT
-              value: "5432"
-            - name: DB_USERNAME
+            # ========================================================
+            # SOBRESCRITURA DE DATASOURCE 1: social_db
+            # ========================================================
+            - name: SPRING_DATASOURCE_SOCIAL_JDBC_URL
+              value: "jdbc:postgresql://127.0.0.1:5432/social_db"
+            - name: SPRING_DATASOURCE_SOCIAL_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: cloudsql-db-credentials
                   key: username
-            - name: DB_PASSWORD
+            - name: SPRING_DATASOURCE_SOCIAL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: cloudsql-db-credentials
                   key: password
-            - name: DB_NAME
-              value: "social_db" # Asegúrate que esta BD exista en tu instancia
+            
+            # ========================================================
+            # SOBRESCRITURA DE DATASOURCE 2: relations_db
+            # ========================================================
+            - name: SPRING_DATASOURCE_RELATIONS_JDBC_URL
+              value: "jdbc:postgresql://127.0.0.1:5432/relations_db"
+            - name: SPRING_DATASOURCE_RELATIONS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: username
+            - name: SPRING_DATASOURCE_RELATIONS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: password
+
+        - name: cloudsql-proxy-social
+          image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
+          command:
+            - "/cloud_sql_proxy"
+            - "-instances=musicshare-480712:us-central1:ms111sql=tcp:5432"
+            - "-credential_file=/secrets/cloudsql/credentials.json"
+          securityContext:
+            runAsUser: 2
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
         - name: cloudsql-proxy-social
           image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
           command:
